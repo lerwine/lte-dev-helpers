@@ -351,6 +351,16 @@ export class CharInfo implements ICharInfo {
   value: number;
 
   /**
+   * The hexidecimal value of the character.
+   * @type {string}
+   * @memberof CharInfo
+   * @public
+   */
+  public get valueHex(): string {
+    return (this.value < 0x10) ? "000" + this.value.toString(16) : (this.value < 0x100) ? "00" + this.value.toString(16) : (this.value < 0x1000) ? "0" + this.value.toString(16) : this.value.toString(16);
+  }
+  
+  /**
    * The display value for the character, which may be empty if the character is white space or cannot be displayed.
    * @type {string}
    * @memberof CharInfo
