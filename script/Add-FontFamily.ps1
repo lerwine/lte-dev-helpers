@@ -77,12 +77,12 @@ if ($null -ne $SelectedFont) {
                     } else {
                         switch ($_.Name) {
                             'quot' {
-                                [int]$i = ([char]'#');
+                                [int]$i = ([char]'"');
                                 $HasGlyph = $DisplayChars -contains $i;
                                 if (-not $HasGlyph) { $DisplayChars += $i }
                                 $Script:EntityDictionary.Add($i, ([PSCustomObject]@{
                                     Name = $_;
-                                    Value = ([char]'#');
+                                    Value = ([char]'"');
                                     Encoded = "&quot;"
                                     HasGlyph = $HasGlyph;
                                     EntitySet = $en
@@ -215,6 +215,6 @@ if ($null -ne $SelectedFont) {
                 };
             }
         }
-    }) | ConvertTo-Json -Depth 3).Replace("\u0026", "&").Replace("\u0026", "&").Replace("\u0027", "'").Replace("\u003c", "<").Replace("\u003e", ">") | Out-File -LiteralPath ($AssetsPath | Join-Path -ChildPath "char-map$id.json");
+    }) | ConvertTo-Json -Depth 3).Replace("\u0026", "&").Replace("\u0027", "'").Replace("\u003c", "<").Replace("\u003e", ">") | Out-File -LiteralPath ($AssetsPath | Join-Path -ChildPath "char-map$id.json");
     Write-Progress -Activity 'Getting character information' -Status 'Finished' -PercentComplete 100 -Completed;
 }
