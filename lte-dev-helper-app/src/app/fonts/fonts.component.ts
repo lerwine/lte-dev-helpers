@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { FontService, IIndexedFont } from '../font.service';
+import { FontService, IFontSummaryData } from '../font.service';
 
 @Component({
   selector: 'app-fonts',
@@ -7,7 +7,7 @@ import { FontService, IIndexedFont } from '../font.service';
   styleUrls: ['./fonts.component.css']
 })
 export class FontsComponent {
-  fonts: IIndexedFont[] = [];
+  fonts: IFontSummaryData[] = [];
 
   constructor(private fontService: FontService) { }
 

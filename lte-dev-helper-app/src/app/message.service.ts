@@ -6,6 +6,7 @@ const CSS_CLASS_info: string = "info";
 const CSS_CLASS_warning: string = "warning";
 const CSS_CLASS_error: string = "error";
 const CSS_CLASS_critical: string = "critical";
+
 /**
  * Message severity levels.
  * @export
@@ -178,6 +179,11 @@ export class Message {
   }
 }
 
+/**
+ * Manages application messages.
+ * @export
+ * @class MessageService
+ */
 @Injectable({
   providedIn: 'root'
 })
@@ -302,8 +308,16 @@ export class MessageService {
    */
   addCritical(short_description: string, details?: string | Error) { this.addMessage(MessageLevel.critical, short_description, details); }
 
+  /**
+   * Clears all application messages.
+   * @memberof MessageService
+   */
   clear() {
-    this.messages = [];
-    this._allMessages = [];
+    if (this._allMessages.length > 0)
+    {
+      if (this.messages.length > 0)
+        this.messages = [];
+      this._allMessages = [];
+    }
   }
 }
