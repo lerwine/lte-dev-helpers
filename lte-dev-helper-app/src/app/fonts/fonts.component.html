@@ -1,6 +1,6 @@
 <h2>Fonts</h2>
 <ul class="heroes">
   <li *ngFor="let font of fonts">
-    <a routerLink="/charmap/{{font.id}}">{{font.name}}</a>
+    <a routerLink="/charmap/{{font.id}}">{{font.name}} ({{font.characterCount}} characters)</a>
   </li>
 </ul>

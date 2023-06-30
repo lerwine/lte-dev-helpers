@@ -1,5 +1,6 @@
 <div *ngIf="font">
-  <h2>{{font!.name | uppercase}} Details</h2>
+  <h2>{{font!.name | uppercase}} Character Map</h2>
   <div><span>id: </span>{{font!.id}}</div>
   <div><span>name: </span>{{font!.name}}</div>
 </div>
+<button type="button" routerLink="/fonts">Font list</button>
