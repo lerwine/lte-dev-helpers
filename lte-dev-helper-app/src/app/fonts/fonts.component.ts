@@ -1,6 +1,5 @@
 import { Component } from '@angular/core';
-import { IIndexedFont } from '../IIndexedFont';
-import { FontService } from '../font.service';
+import { FontService, IIndexedFont } from '../font.service';
 
 @Component({
   selector: 'app-fonts',

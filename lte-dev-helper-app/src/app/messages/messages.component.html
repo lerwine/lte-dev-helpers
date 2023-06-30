@@ -2,6 +2,6 @@
 
   <h2>Messages</h2>
   <button type="button" class="clear" (click)="messageService.clear()">Clear messages</button>
-  <div *ngFor='let message of messageService.messages'> {{message}} </div>
+  <div *ngFor='let message of messageService.messages' [ngClass]="message.class">{{message.short_description}}<div *ngIf="message.details" class="message_detail">{{message.details}}</div></div>
 
 </div>

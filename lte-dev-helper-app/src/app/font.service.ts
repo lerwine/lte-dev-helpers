@@ -1,10 +1,27 @@
 import { Injectable } from '@angular/core';
-import { IIndexedFont } from './IIndexedFont';
-import { IFontWithChars } from './IFontWithChars';
 import { Observable, of, EMPTY, map, mergeMap } from 'rxjs';
 import { HttpClient } from '@angular/common/http';
-import { ICharInfo } from './ICharInfo';
-import { IFont } from './IFont';
+
+export interface IFont {
+  id: number;
+  name: string;
+}
+
+export interface IIndexedFont extends IFont {
+  characterCount: number;
+}
+
+export interface ICharInfo {
+  value: number;
+  display?: string;
+  name: string,
+  encoded: string,
+  entitySet?: string;
+}
+
+export interface IFontWithChars extends IFont {
+  characters: ICharInfo[];
+}
 
 @Injectable({
   providedIn: 'root'
@@ -12,7 +29,7 @@ import { IFont } from './IFont';
 export class FontService {
   constructor(private http: HttpClient) { }
 
-  getFontFrom(source: IFont): Observable<IFontWithChars> {
+  getFontChars(source: IFont): Observable<IFontWithChars> {
     return this.http.get<ICharInfo[]>('assets/char-map' + source.id + '.json').pipe(map(chars => <IFontWithChars>{
       id: source.id,
       name: source.name,

@@ -1,8 +1,7 @@
 import { Component } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { Location } from '@angular/common';
-import { FontService } from '../font.service';
-import { IFontWithChars } from '../IFontWithChars';
+import { FontService, IFontWithChars } from '../font.service';
 
 @Component({
   selector: 'app-charmap',
