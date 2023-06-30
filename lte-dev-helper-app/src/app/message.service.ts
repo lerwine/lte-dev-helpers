@@ -16,20 +16,46 @@ export enum MessageLevel {
   critical
 }
 
-export interface IMessage {
+export class Message {
   short_description: string;
   details?: string;
   level: MessageLevel;
   class: string;
+  constructor(level: MessageLevel, short_description: string, details?: string) {
+    this.level = level;
+    switch (level) {
+      case MessageLevel.debug:
+        this.class = CSS_CLASS_debug;
+        break;
+      case MessageLevel.verbose:
+        this.class = CSS_CLASS_verbose;
+        break;
+      case MessageLevel.warning:
+        this.class = CSS_CLASS_warning;
+        break;
+      case MessageLevel.error:
+        this.class = CSS_CLASS_error;
+        break;
+      case MessageLevel.critical:
+        this.class = CSS_CLASS_critical;
+        break;
+      default:
+        this.class = CSS_CLASS_info;
+        break;
+    }
+    this.short_description = short_description;
+    if (typeof details === 'string' && (details = details.trim()).length > 0)
+      this.details = details;
+  }
 }
 
 @Injectable({
   providedIn: 'root'
 })
 export class MessageService {
-  private _allMessages: IMessage[] = [];
+  private _allMessages: Message[] = [];
 
-  messages: IMessage[] = [];
+  messages: Message[] = [];
 
   // #region level Property
   
@@ -60,55 +86,43 @@ export class MessageService {
 
   constructor() { }
 
+  add(short_description: string, details?: string) {
+    var message: Message = new Message(MessageLevel.info, short_description, details);
+    this._allMessages.push(message);
+    if (this._level <= MessageLevel.info)
+      this.messages.push(message);
+  }
+
   addDebug(short_description: string, details?: string) {
-    var message: IMessage = (typeof details === 'string' && (details = details.trim()).length > 0) ?
-      { short_description: short_description, details: details, level: MessageLevel.debug, class: CSS_CLASS_debug } :
-      { short_description: short_description, level: MessageLevel.debug, class: CSS_CLASS_debug };
+    var message: Message = new Message(MessageLevel.debug, short_description, details);
     this._allMessages.push(message);
     if (this._level == MessageLevel.debug)
       this.messages.push(message);
   }
 
   addVerbose(short_description: string, details?: string) {
-    var message: IMessage = (typeof details === 'string' && (details = details.trim()).length > 0) ?
-      { short_description: short_description, details: details, level: MessageLevel.verbose, class: CSS_CLASS_verbose } :
-      { short_description: short_description, level: MessageLevel.verbose, class: CSS_CLASS_verbose };
+    var message: Message = new Message(MessageLevel.verbose, short_description, details);
     this._allMessages.push(message);
     if (this._level <= MessageLevel.verbose)
       this.messages.push(message);
   }
 
-  add(short_description: string, details?: string) {
-    var message: IMessage = (typeof details === 'string' && (details = details.trim()).length > 0) ?
-      { short_description: short_description, details: details, level: MessageLevel.info, class: CSS_CLASS_info } :
-      { short_description: short_description, level: MessageLevel.info, class: CSS_CLASS_info };
-    this._allMessages.push(message);
-    if (this._level <= MessageLevel.info)
-      this.messages.push(message);
-  }
-
   addWarning(short_description: string, details?: string) {
-    var message: IMessage = (typeof details === 'string' && (details = details.trim()).length > 0) ?
-      { short_description: short_description, details: details, level: MessageLevel.debug, class: CSS_CLASS_warning } :
-      { short_description: short_description, level: MessageLevel.warning, class: CSS_CLASS_warning };
+    var message: Message = new Message(MessageLevel.warning, short_description, details);
     this._allMessages.push(message);
     if (this._level <= MessageLevel.warning)
       this.messages.push(message);
   }
 
   addError(short_description: string, details?: string) {
-    var message: IMessage = (typeof details === 'string' && (details = details.trim()).length > 0) ?
-      { short_description: short_description, details: details, level: MessageLevel.error, class: CSS_CLASS_error } :
-      { short_description: short_description, level: MessageLevel.error, class: CSS_CLASS_error };
+    var message: Message = new Message(MessageLevel.error, short_description, details);
     this._allMessages.push(message);
     if (this._level <= MessageLevel.error)
       this.messages.push(message);
   }
 
   addCritical(short_description: string, details?: string) {
-    var message: IMessage = (typeof details === 'string' && (details = details.trim()).length > 0) ?
-      { short_description: short_description, details: details, level: MessageLevel.critical, class: CSS_CLASS_critical } :
-      { short_description: short_description, level: MessageLevel.critical, class: CSS_CLASS_critical };
+    var message: Message = new Message(MessageLevel.critical, short_description, details);
     this._allMessages.push(message);
     this.messages.push(message);
   }
