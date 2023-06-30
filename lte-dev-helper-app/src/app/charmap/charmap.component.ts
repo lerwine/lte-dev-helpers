@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { ActivatedRoute } from '@angular/router';
 import { Location } from '@angular/common';
-import { FontService, IFontDetailData } from '../font.service';
+import { FontService, FontDetail } from '../font.service';
 
 @Component({
   selector: 'app-charmap',
@@ -9,7 +9,7 @@ import { FontService, IFontDetailData } from '../font.service';
   styleUrls: ['./charmap.component.css']
 })
 export class CharmapComponent {
-  font?: IFontDetailData;
+  font?: FontDetail;
 
   constructor(
     private route: ActivatedRoute,
