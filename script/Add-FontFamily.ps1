@@ -49,7 +49,9 @@ if ($null -ne $SelectedFont) {
     if ($null -eq $Script:EntityDictionary) {
         [System.Xml.Resolvers.XmlPreloadedResolver]$Resolver = [System.Xml.Resolvers.XmlPreloadedResolver]::new([System.Xml.Resolvers.XmlKnownDtds]::Xhtml10);
         $Script:EntityDictionary = [System.Collections.Generic.Dictionary[int,[System.Management.Automation.PSObject]]]::new();
-        @('xhtml-lat1.ent', 'xhtml-special.ent', 'xhtml-symbol.ent') | ForEach-Object {# , 'xhtml1-transitional.dtd'
+        $en = 0;
+        @('xhtml-lat1.ent', 'xhtml-symbol.ent', 'xhtml-special.ent') | ForEach-Object {
+            $en++;
             $EntitySet = [System.IO.Path]::GetFileNameWithoutExtension($_);
             $Path = $PSScriptRoot | Join-Path -ChildPath $_;
             $XmlDocument = [System.Xml.XmlDocument]::new();
@@ -70,7 +72,7 @@ if ($null -ne $SelectedFont) {
                             Value = $c;
                             Encoded = "&#$i;";
                             HasGlyph = $HasGlyph;
-                            EntitySet = $EntitySet
+                            EntitySet = $en
                         }));
                     } else {
                         switch ($_.Name) {
@@ -83,7 +85,7 @@ if ($null -ne $SelectedFont) {
                                     Value = ([char]'#');
                                     Encoded = "&quot;"
                                     HasGlyph = $HasGlyph;
-                                    EntitySet = $EntitySet
+                                    EntitySet = $en
                                 }));
                                 break;
                             }
@@ -96,7 +98,7 @@ if ($null -ne $SelectedFont) {
                                     Value = ([char]'&');
                                     Encoded = "&amp;"
                                     HasGlyph = $HasGlyph;
-                                    EntitySet = $EntitySet
+                                    EntitySet = $en
                                 }));
                                 break;
                             }
@@ -109,7 +111,7 @@ if ($null -ne $SelectedFont) {
                                     Value = ([char]'<');
                                     Encoded = "&lt;"
                                     HasGlyph = $HasGlyph;
-                                    EntitySet = $EntitySet
+                                    EntitySet = $en
                                 }));
                                 break;
                             }
@@ -122,7 +124,7 @@ if ($null -ne $SelectedFont) {
                                     Value = ([char]'>');
                                     Encoded = "&gt;"
                                     HasGlyph = $HasGlyph;
-                                    EntitySet = $EntitySet
+                                    EntitySet = $en
                                 }));
                                 break;
                             }
@@ -135,7 +137,7 @@ if ($null -ne $SelectedFont) {
                                     Value = ([char]"'");
                                     Encoded = "&apos;"
                                     HasGlyph = $HasGlyph;
-                                    EntitySet = $EntitySet
+                                    EntitySet = $en
                                 }));
                                 break;
                             }
@@ -169,12 +171,15 @@ if ($null -ne $SelectedFont) {
         [char]$c = $_;
         $Category = [char]::GetUnicodeCategory($c);
         [PSObject]$Entity = $null;
-        if ([char]::IsControl($c) -or [char]::IsWhiteSpace($c) -or $NonDisplayableCategories -contains $Category) {
+        $isWhiteSpace = [char]::IsWhiteSpace($c);
+        if ($isWhiteSpace -or [char]::IsControl($c) -or $NonDisplayableCategories -contains $Category) {
             if ($Script:EntityDictionary.TryGetValue($_, [ref]$Entity)) {
                 [PSCustomObject]@{
                     value = $_;
                     name = $Entity.Name;
                     encoded = $Entity.Encoded;
+                    isWhiteSpace = $isWhiteSpace;
+                    category = ([int]$Category);
                     entitySet = $Entity.EntitySet;
                 };
             } else {
@@ -182,6 +187,9 @@ if ($null -ne $SelectedFont) {
                     value = $_;
                     name = "#$_";
                     encoded = "&#$_;";
+                    isWhiteSpace = $isWhiteSpace;
+                    category = ([int]$Category);
+                    entitySet = 0;
                 };
             }
         } else {
@@ -191,6 +199,8 @@ if ($null -ne $SelectedFont) {
                     display = $Entity.Value;
                     name = $Entity.Name;
                     encoded = $Entity.Encoded;
+                    isWhiteSpace = $false;
+                    category = ([int]$Category);
                     entitySet = $Entity.EntitySet;
                 };
             } else {
@@ -199,6 +209,9 @@ if ($null -ne $SelectedFont) {
                     display = $c;
                     name = "#$_";
                     encoded = "&#$_;";
+                    isWhiteSpace = $false;
+                    category = ([int]$Category);
+                    entitySet = 0;
                 };
             }
         }
