@@ -30,3 +30,8 @@ a:hover {
 a:hover {
   color: #125699;
 }
+
+footer {
+  background-color: lightslategray;
+  border: 1px solid black;
+}

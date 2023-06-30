@@ -1,0 +1,94 @@
+message-debug,
+message-verbose,
+message-info,
+message-warning,
+message-error,
+message-critical {
+  font-weight: bold;
+  border-style: solid;
+  margin-top: 2px;
+  margin-bottom: 2px;
+  padding: 4px;
+}
+
+message-debug message-detail,
+message-verbose message-detail,
+message-info message-detail,
+message-warning message-detail,
+message-error message-detail,
+message-critical message-detail {
+  font-weight: normal;
+  padding: 4px;
+  margin: 4px;
+  border-width: 1px;
+  border-style: solid;
+}
+
+message-debug,
+message-debug message-detail {
+  border-color: darkslateblue;
+}
+
+message-debug {
+  border-width: 1px;
+  background-color: slategray;
+  color: slateblue;
+}
+
+message-verbose,
+message-info,
+message-warning,
+message-error,
+message-critical {
+  border-width: 4px;
+}
+
+message-verbose,
+message-verbose message-detail {
+  border-color: darkslateblue;
+}
+
+message-verbose {
+  background-color: lightgray;
+  color: steelblue;
+}
+
+message-info,
+message-info message-detail {
+  border-color: dimgray;
+}
+
+message-info {
+  background-color: white;
+  color: black;
+}
+
+message-warning,
+message-warning message-detail {
+  border-color: darkgoldenrod;
+}
+
+message-warning {
+  background-color: lightyellow;
+  color: black;
+}
+
+message-error,
+message-error message-detail {
+  border-color: darkred;
+}
+
+message-error {
+  background-color: white;
+  color: crimson;
+}
+
+message-critical,
+message-critical message-detail {
+  border-color: red;
+}
+
+message-critical {
+  background-color: darkred;
+  color: white;
+}

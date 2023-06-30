@@ -1,11 +1,11 @@
 import { Injectable } from '@angular/core';
 
-const CSS_CLASS_debug: string = "debug";
-const CSS_CLASS_verbose: string = "verbose";
-const CSS_CLASS_info: string = "info";
-const CSS_CLASS_warning: string = "warning";
-const CSS_CLASS_error: string = "error";
-const CSS_CLASS_critical: string = "critical";
+const CSS_CLASS_debug: string = "message-debug";
+const CSS_CLASS_verbose: string = "message-verbose";
+const CSS_CLASS_info: string = "message-info";
+const CSS_CLASS_warning: string = "message-warning";
+const CSS_CLASS_error: string = "message-error";
+const CSS_CLASS_critical: string = "message-critical";
 
 /**
  * Message severity levels.
