@@ -1,6 +1,65 @@
 $AssetsPath = $PSScriptRoot | Join-Path -ChildPath '..\lte-dev-helper-app\src\assets';
-
 $FontIndexPath = $AssetsPath | Join-Path -ChildPath 'font-index.json';
+
+class FontItem {
+    [string]$Name;
+    [System.Windows.Media.FontFamily]$FontFamily;
+    [System.Windows.Media.Typeface]$Typeface;
+    [System.Windows.Media.GlyphTypeface]$Glyph;
+    [int]$CharacterCount;
+    [double]$MaxHeight = 0.0;
+    [double]$MaxWidth = 0.0;
+    FontItem([System.Windows.Media.FontFamily]$FontFamily) {
+        $this.Name = $FontFamily.FamilyNames['en-us'];
+        $this.FontFamily = $FontFamily;
+        $TypeFaces = @($FontFamily.GetTypefaces());
+        foreach ($tf in $TypeFaces) {
+            if ($tf.Style -eq [System.Windows.FontStyles]::Normal -and $tf.Weight -eq [System.Windows.FontWeights]::Normal -and $tf.Stretch -eq [System.Windows.FontStretches]::Normal) {
+                $this.Typeface = $tf;
+                break;
+            }
+        }
+        if ($null -eq $this.Typeface) {
+            foreach ($tf in $TypeFaces) {
+                if ($tf.Style -eq [System.Windows.FontStyles]::Normal -and $tf.Stretch -eq [System.Windows.FontStretches]::Normal) {
+                    $this.Typeface = $tf;
+                    break;
+                }
+            }
+            if ($null -eq $this.Typeface) {
+                foreach ($tf in $TypeFaces) {
+                    if ($tf.Weight -eq [System.Windows.FontWeights]::Normal -and $tf.Stretch -eq [System.Windows.FontStretches]::Normal) {
+                        $this.Typeface = $tf;
+                        break;
+                    }
+                }
+                if ($null -eq $this.Typeface) {
+                    foreach ($tf in $TypeFaces) {
+                        if ($tf.Stretch -eq [System.Windows.FontStretches]::Normal) {
+                            $this.Typeface = $tf;
+                            break;
+                        }
+                    }
+                    if ($null -eq $this.Typeface) { $this.Typeface = $TypeFaces[0] }
+                }
+            }
+        }
+        [System.Windows.Media.GlyphTypeface]$g = $null;
+        if ($this.Typeface.TryGetGlyphTypeface([ref]$g)) {
+            $this.CharacterCount = $g.CharacterToGlyphMap.Count;
+            $this.Glyph = $g;
+            $this.MaxHeight = $g.Height;
+            foreach ($h in $g.AdvanceHeights.Values) {
+                if ($h -gt $this.MaxHeight) { $this.MaxHeight = $h }
+            }
+            foreach ($h in $g.AdvanceWidths.Values) {
+                if ($h -gt $this.MaxWidth) { $this.MaxWidth = $h }
+            }
+        } else {
+            $this.CharacterCount = 0;
+        }
+    }
+}
 [PSObject[]]$ExistingFonts = @();
 $ExistingFontNames = @();
 if ($FontIndexPath | Test-Path -PathType Leaf) {
@@ -19,29 +78,28 @@ if ($null -eq $Script:FontFamilies) {
             [System.Windows.Media.GlyphTypeface]$Glyph = $null;
             if ($_.TryGetGlyphTypeface([ref]$Glyph) -and $Glyph.CharacterToGlyphMap.Count -gt $charCount) { $charCount = $Glyph.CharacterToGlyphMap.Count }
         }
-        [PSCustomObject]@{
-            Font = $_;
-            name = $_.FamilyNames['en-us'];
-            characterCount = $charCount;
-        }
-    } | Where-Object { $_.characterCount -gt 0 -and $ExistingFontNames -notcontains $_.name });
+        [FontItem]::new($_);
+    } | Where-Object { $_.CharacterCount -gt 0 -and $ExistingFontNames -notcontains $_.Name });
     Write-Progress -Activity 'Getting font character counts' -Status 'Completed' -PercentComplete 100 -Completed;
 }
 $SelectedFont = $Script:FontFamilies | ForEach-Object {
     [PSCustomObject]@{
-        Name = $_.name;
-        'Character Count' = $_.characterCount;
+        Name = $_.Name;
+        'Character Count' = $_.CharacterCount;
     };
 } | Out-GridView -Title 'Select font to add' -OutputMode Single;
 if ($null -ne $SelectedFont) {
     $n = $SelectedFont.Name;
     $id = $ExistingFontNames.Count + 1;
-    $Item = $Script:FontFamilies | Where-Object { $_.name -eq $n } | Select-Object -First 1;
-    $Script:FontFamilies = @($Script:FontFamilies | Where-Object { $_.name -ne $n });
+    [FontItem]$Item = $Script:FontFamilies | Where-Object { $_.Name -eq $n } | Select-Object -First 1;
+    $Script:FontFamilies = @($Script:FontFamilies | Where-Object { $_.Name -ne $n });
     $ExistingFonts += [PSCustomObject]@{
         id = $id;
         name = $n;
-        characterCount = $Item.characterCount;
+        lineSpacing = $Item.FontFamily.LineSpacing;
+        maxHeight = $Item.MaxHeight;
+        maxWidth = $Item.MaxWidth;
+        characterCount = $Item.CharacterCount;
     };
     
     (ConvertTo-Json -InputObject $ExistingFonts -Depth 3) | Out-File -LiteralPath $FontIndexPath;
@@ -65,78 +123,54 @@ if ($null -ne $SelectedFont) {
                     if ($null -ne $TextNode) {
                         [char]$c = $TextNode.InnerText[0];
                         [int]$i = $c;
-                        $HasGlyph = $DisplayChars -contains $i;
-                        if (-not $HasGlyph) { $DisplayChars += $i }
                         $Script:EntityDictionary.Add($i, ([PSCustomObject]@{
                             Name = $_.Name;
                             Value = $c;
-                            Encoded = "&#$i;";
-                            HasGlyph = $HasGlyph;
                             EntitySet = $en
                         }));
                     } else {
                         switch ($_.Name) {
                             'quot' {
                                 [int]$i = ([char]'"');
-                                $HasGlyph = $DisplayChars -contains $i;
-                                if (-not $HasGlyph) { $DisplayChars += $i }
                                 $Script:EntityDictionary.Add($i, ([PSCustomObject]@{
                                     Name = $_;
                                     Value = ([char]'"');
-                                    Encoded = "&quot;"
-                                    HasGlyph = $HasGlyph;
                                     EntitySet = $en
                                 }));
                                 break;
                             }
                             'amp' {
                                 [int]$i = ([char]'&');
-                                $HasGlyph = $DisplayChars -contains $i;
-                                if (-not $HasGlyph) { $DisplayChars += $i }
                                 $Script:EntityDictionary.Add($i, ([PSCustomObject]@{
                                     Name = $_;
                                     Value = ([char]'&');
-                                    Encoded = "&amp;"
-                                    HasGlyph = $HasGlyph;
                                     EntitySet = $en
                                 }));
                                 break;
                             }
                             'lt' {
                                 [int]$i = ([char]'<');
-                                $HasGlyph = $DisplayChars -contains $i;
-                                if (-not $HasGlyph) { $DisplayChars += $i }
                                 $Script:EntityDictionary.Add($i, ([PSCustomObject]@{
                                     Name = $_;
                                     Value = ([char]'<');
-                                    Encoded = "&lt;"
-                                    HasGlyph = $HasGlyph;
                                     EntitySet = $en
                                 }));
                                 break;
                             }
                             'gt' {
                                 [int]$i = ([char]'>');
-                                $HasGlyph = $DisplayChars -contains $i;
-                                if (-not $HasGlyph) { $DisplayChars += $i }
                                 $Script:EntityDictionary.Add($i, ([PSCustomObject]@{
                                     Name = $_;
                                     Value = ([char]'>');
-                                    Encoded = "&gt;"
-                                    HasGlyph = $HasGlyph;
                                     EntitySet = $en
                                 }));
                                 break;
                             }
                             'apos' {
                                 [int]$i = ([char]"'");
-                                $HasGlyph = $DisplayChars -contains $i;
-                                if (-not $HasGlyph) { $DisplayChars += $i }
                                 $Script:EntityDictionary.Add($i, ([PSCustomObject]@{
                                     Name = $_;
                                     Value = ([char]"'");
-                                    Encoded = "&apos;"
-                                    HasGlyph = $HasGlyph;
                                     EntitySet = $en
                                 }));
                                 break;
@@ -152,13 +186,7 @@ if ($null -ne $SelectedFont) {
         }
     }
 
-    [int[]]$CharCodes = @();
-    @($Item.Font.GetTypeFaces()) | ForEach-Object {
-        [System.Windows.Media.GlyphTypeface]$Glyph = $null;
-        if ($_.TryGetGlyphTypeface([ref]$Glyph) -and $Glyph.CharacterToGlyphMap.Count -eq $Item.characterCount) {
-            [int[]]$CharCodes = @($Glyph.CharacterToGlyphMap.Keys);
-        }
-    }
+    [int[]]$CharCodes = @($Item.Glyph.CharacterToGlyphMap.Keys);
     $NonDisplayableCategories = @([System.Globalization.UnicodeCategory]::ModifierLetter, [System.Globalization.UnicodeCategory]::NonSpacingMark, [System.Globalization.UnicodeCategory]::SpaceSeparator,
         [System.Globalization.UnicodeCategory]::LineSeparator, [System.Globalization.UnicodeCategory]::ParagraphSeparator, [System.Globalization.UnicodeCategory]::Control,
         [System.Globalization.UnicodeCategory]::Format, [System.Globalization.UnicodeCategory]::Surrogate, [System.Globalization.UnicodeCategory]::ModifierSymbol);
@@ -175,18 +203,15 @@ if ($null -ne $SelectedFont) {
         if ($isWhiteSpace -or [char]::IsControl($c) -or $NonDisplayableCategories -contains $Category) {
             if ($Script:EntityDictionary.TryGetValue($_, [ref]$Entity)) {
                 [PSCustomObject]@{
-                    value = $_;
+                    numericValue = $_;
                     name = $Entity.Name;
-                    encoded = $Entity.Encoded;
                     isWhiteSpace = $isWhiteSpace;
                     category = ([int]$Category);
                     entitySet = $Entity.EntitySet;
                 };
             } else {
                 [PSCustomObject]@{
-                    value = $_;
-                    name = "#$_";
-                    encoded = "&#$_;";
+                    numericValue = $_;
                     isWhiteSpace = $isWhiteSpace;
                     category = ([int]$Category);
                     entitySet = 0;
@@ -195,20 +220,17 @@ if ($null -ne $SelectedFont) {
         } else {
             if ($Script:EntityDictionary.TryGetValue($_, [ref]$Entity)) {
                 [PSCustomObject]@{
-                    value = $_;
-                    display = $Entity.Value;
+                    numericValue = $_;
+                    value = $Entity.Value;
                     name = $Entity.Name;
-                    encoded = $Entity.Encoded;
                     isWhiteSpace = $false;
                     category = ([int]$Category);
                     entitySet = $Entity.EntitySet;
                 };
             } else {
                 [PSCustomObject]@{
-                    value = $_;
-                    display = $c;
-                    name = "#$_";
-                    encoded = "&#$_;";
+                    numericValue = $_;
+                    value = $c;
                     isWhiteSpace = $false;
                     category = ([int]$Category);
                     entitySet = 0;

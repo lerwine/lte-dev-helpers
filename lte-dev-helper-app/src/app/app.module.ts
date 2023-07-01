@@ -10,6 +10,7 @@ import { CharmapComponent } from './charmap/charmap.component';
 import { DashboardComponent } from './dashboard/dashboard.component';
 import { MessagesComponent } from './messages/messages.component';
 import { NgbModule } from '@ng-bootstrap/ng-bootstrap';
+import { RegexTesterComponent } from './regex-tester/regex-tester.component';
 
 @NgModule({
   declarations: [
@@ -17,7 +18,8 @@ import { NgbModule } from '@ng-bootstrap/ng-bootstrap';
     FontsComponent,
     CharmapComponent,
     DashboardComponent,
-    MessagesComponent
+    MessagesComponent,
+    RegexTesterComponent
   ],
   imports: [
     BrowserModule,

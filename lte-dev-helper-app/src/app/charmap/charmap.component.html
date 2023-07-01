@@ -1,6 +1,52 @@
-<div *ngIf="font">
-  <h2>{{font!.name | uppercase}} Character Map</h2>
-  <div><span>id: </span>{{font!.id}}</div>
-  <div><span>name: </span>{{font!.name}}</div>
+<div *ngIf="fontName">
+  <h2>{{fontName}} Character Map</h2>
+  <table>
+    <tbody>
+      <tr>
+        <td class="charmap">
+          <label>
+            Show All
+            <input type="checkbox" name="showAllCheckBox" id="showAllCheckBox" (change)="showAllToggle($event)" [checked]="showAll" />
+          </label>
+          <table class="charmap">
+            <tbody>
+              <tr *ngFor="let r of rows | slice: (page-1) * pageSize : page * pageSize">
+                <td *ngFor="let c of r.characters">
+                  <div *ngIf="c.hasEntitySet; else nonEntityBlock">
+                    <span class="entity">{{c.name}}</span>
+                    (u{{c.valueHex}})
+                  </div>
+                  <ng-template #nonEntityBlock><div>u{{c.valueHex}}</div></ng-template>
+                  <button type="button" [class.selected]="c === current" (click)="selectCharacter(c)">
+                    <span *ngIf="c.hasValue; else noDisplayBlock" [style.font-family]="fontName">{{c.value}}</span>
+                    <ng-template #noDisplayBlock>&nbsp;</ng-template>
+                  </button>
+                </td>
+                <td *ngIf="r.finalColSpan" [attr.colspan]="r.finalColSpan">&nbsp;</td>
+              </tr>
+            </tbody>
+          </table>
+          <ngb-pagination [(page)]="page" [pageSize]="pageSize" [collectionSize]="rows.length"></ngb-pagination>
+        </td>
+        <td class="selected" *ngIf="current">
+          <h3>Selected Character</h3>
+          <dl>
+            <dt *ngIf="current.hasValue"><label for="valueTextBox">Value:</label></dt>
+            <dd *ngIf="current.hasValue"><input name="valueTextBox" id="valueTextBox" type="text" [value]="current.value" [style.font-family]="fontName" /></dd>
+            <dt><label for="hexTextBox">Hex Value:</label></dt>
+            <dd><input name="hexTextBox" id="hexTextBox" type="text" [value]="current.valueHex" /></dd>
+            <dt *ngIf="current.hasEncodedValue"><label for="nameTextBox">Encoded Value:</label></dt>
+            <dd *ngIf="current.hasEncodedValue"><input name="nameTextBox" id="nameTextBox" type="text" [value]="current.encodedValue" /></dd>
+            <dt>Is WhiteSpace:</dt>
+            <dd>{{current.isWhiteSpace}}</dd>
+            <dt>Category:</dt>
+            <dd>{{current.categoryName}}</dd>
+            <dt *ngIf="current.hasEntitySet">Entity Set:</dt>
+            <dd *ngIf="current.hasEntitySet">{{current.entitySetName}}</dd>
+          </dl>
+        </td>
+      </tr>
+    </tbody>
+  </table>
 </div>
 <button type="button" routerLink="/fonts">Font list</button>

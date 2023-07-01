@@ -21,6 +21,27 @@ export interface IFontItem {
    * @memberof IFontItem
    */
   name: string;
+
+  /**
+   * Gets the recommended baseline-to-baseline distance for the text in this font relative to the em size.
+   * @type {number}
+   * @memberof IFontItem
+   */
+  lineSpacing: number;
+
+  /**
+   * Gets the maximum character cell height relative to the em size.
+   * @type {number}
+   * @memberof IFontItem
+   */
+  maxHeight: number;
+
+  /**
+   * Gets the maximum character cell width relative to the em size.
+   * @type {number}
+   * @memberof IFontItem
+   */
+  maxWidth: number;
 }
 
 /**
@@ -264,28 +285,21 @@ export interface ICharInfo {
    * @type {number}
    * @memberof ICharInfo
    */
-  value: number;
+  numericValue: number;
 
   /**
    * The display value for the character or undefined if the character is white space or cannot be displayed.
    * @type {(string | undefined)}
    * @memberof ICharInfo
    */
-  display?: string;
+  value?: string;
 
   /**
    * The entity name of the character.
-   * @type {string}
+   * @type {(string | undefined)}
    * @memberof ICharInfo
    */
-  name: string;
-
-  /**
-   * The HTML-encoded value of the character.
-   * @type {string}
-   * @memberof ICharInfo
-   */
-  encoded: string;
+  name?: string;
 
   /**
    * Indicates whether the current character is a white-space character.
@@ -335,6 +349,10 @@ export interface ICharInfoData extends ICharInfo {
   entitySet: number;
 }
 
+const CSS_CLASS_entity = "entity";
+
+const CSS_CLASS_nonEntity = "non-entity";
+
 /**
  * 
  * Represents font character information
@@ -348,7 +366,7 @@ export class CharInfo implements ICharInfo {
    * @type {number}
    * @memberof CharInfo
    */
-  value: number;
+  numericValue: number;
 
   /**
    * The hexidecimal value of the character.
@@ -357,15 +375,23 @@ export class CharInfo implements ICharInfo {
    * @public
    */
   public get valueHex(): string {
-    return (this.value < 0x10) ? "000" + this.value.toString(16) : (this.value < 0x100) ? "00" + this.value.toString(16) : (this.value < 0x1000) ? "0" + this.value.toString(16) : this.value.toString(16);
+    return (this.numericValue < 0x10) ? "000" + this.numericValue.toString(16) : (this.numericValue < 0x100) ? "00" + this.numericValue.toString(16) : (this.numericValue < 0x1000) ? "0" + this.numericValue.toString(16) : this.numericValue.toString(16);
   }
+  
+  /**
+   * Indicates whether the character has a display value.
+   * @type {boolean}
+   * @memberof CharInfo
+   * @public
+   */
+  hasValue: boolean;
   
   /**
    * The display value for the character, which may be empty if the character is white space or cannot be displayed.
    * @type {string}
    * @memberof CharInfo
    */
-  display: string;
+  value: string;
 
   /**
    * The entity name of the character.
@@ -373,13 +399,6 @@ export class CharInfo implements ICharInfo {
    * @memberof CharInfo
    */
   name: string;
-
-  /**
-   * The HTML-encoded value of the character.
-   * @type {string}
-   * @memberof CharInfo
-   */
-  encoded: string;
 
   /**
    * Indicates whether the current character is a white-space character.
@@ -402,7 +421,22 @@ export class CharInfo implements ICharInfo {
    * @memberof CharInfo
    * @public
    */
-  public get categoryName(): string { return UnicodeCategory[this.category]; }
+  public get categoryName(): string {
+    var result: string = UnicodeCategory[this.category];
+    return result.substring(0, 1).toUpperCase() + result.substring(1);
+  }
+  
+  /**
+   * Indicates whether the character is part of an HTML entity set.
+   * @type {boolean}
+   * @memberof CharInfo
+   * @public
+   */
+  public get hasEntitySet(): boolean { return this.entitySet != EntitySet.none; }
+  
+  public get hasEncodedValue(): boolean { return this.entitySet != EntitySet.none || this.numericValue > 127 || (!this.hasValue && this.numericValue != 32); }
+  
+  public get encodedValue(): string { return ((this.entitySet != EntitySet.none) ? '&' + this.name : '&#' + this.numericValue) + ';'; }
   
   /**
    * The identifier for the HTML entity set for the character.
@@ -418,7 +452,17 @@ export class CharInfo implements ICharInfo {
    * @memberof CharInfo
    * @public
    */
-  public get entitySetName(): string { return EntitySet[this.entitySet]; }
+  public get entitySetName(): string {
+    switch (this.entitySet) {
+      case EntitySet.lat1:
+        return "Latin 1";
+      case EntitySet.symbol:
+        return "Symbol";
+      case EntitySet.special:
+        return "Special";
+    }
+    return "";
+  }
 
   /**
    * Creates an instance of CharInfo.
@@ -426,13 +470,25 @@ export class CharInfo implements ICharInfo {
    * @memberof CharInfo
    */
   constructor(data: ICharInfoData) {
-    this.value = data.value;
-    this.display = (typeof data.display === 'string' ? data.display : "");
-    this.name = data.name;
-    this.encoded = data.encoded;
+    this.numericValue = data.numericValue;
+    this.value = (typeof data.value === 'string') ? data.value : "";
+    this.name = (typeof data.name === 'string') ? data.name : "";
     this.isWhiteSpace = data.isWhiteSpace;
     try { this.category = data.category; } catch { this.category = UnicodeCategory.otherNotAssigned; }
     try { this.entitySet = data.entitySet; } catch { this.entitySet = EntitySet.none; }
+    if (data.isWhiteSpace || typeof data.value !== 'string' || data.value.length == 0)
+      this.hasValue = false;
+    else
+      switch (this.category) {
+        case UnicodeCategory.control:
+        case UnicodeCategory.spaceSeparator:
+        case UnicodeCategory.modifierSymbol:
+          this.hasValue = false;
+          break;
+        default:
+          this.hasValue = true;
+          break;
+      }
   }
 }
 
@@ -465,15 +521,39 @@ export class FontDetail implements IFontItem {
   characters: CharInfo[];
 
   /**
+   * Gets the recommended baseline-to-baseline distance for the text in this font relative to the em size.
+   * @type {number}
+   * @memberof IFontItem
+   */
+  lineSpacing: number;
+
+  /**
+   * Gets the maximum character cell height relative to the em size.
+   * @type {number}
+   * @memberof IFontItem
+   */
+  maxHeight: number;
+
+  /**
+   * Gets the maximum character cell width relative to the em size.
+   * @type {number}
+   * @memberof IFontItem
+   */
+  maxWidth: number;
+
+  /**
    * Creates an instance of FontDetail.
    * @param {number} id -The unique identifier of the font.
    * @param {string} name - The name of the font.
    * @param {ICharInfoData[]} data - The source character detail data.
    * @memberof FontDetail
    */
-  constructor(id: number, name: string, data: ICharInfoData[]) {
+  constructor(id: number, name: string | undefined, lineSpacing: number, maxHeight: number, maxWidth: number, data: ICharInfoData[]) {
     this.id = id;
-    this.name = name;
+    this.name = (typeof name === 'string') ? name : "";
+    this.lineSpacing = lineSpacing;
+    this.maxHeight = maxHeight;
+    this.maxWidth = maxWidth;
     this.characters = data.map(c => new CharInfo(c));
   }
 }
@@ -496,7 +576,7 @@ export class FontService {
    * @memberof FontService
    */
   getFontChars(source: IFontItem): Observable<FontDetail> {
-    return this.http.get<ICharInfoData[]>('assets/char-map' + source.id + '.json').pipe(map(chars => new FontDetail(source.id, source.name, chars)));
+    return this.http.get<ICharInfoData[]>('assets/char-map' + source.id + '.json').pipe(map(chars => new FontDetail(source.id, source.name, source.lineSpacing, source.maxHeight, source.maxWidth, chars)));
   }
 
   /**
@@ -514,7 +594,7 @@ export class FontService {
       })
     ).pipe(
       mergeMap(font => this.http.get<ICharInfoData[]>('assets/char-map' + id + '.json').pipe(
-        map(chars => new FontDetail(id, font!.name, chars))
+        map(chars => new FontDetail(id, font!.name, font.lineSpacing, font.maxHeight, font.maxWidth, chars))
       ))
     );
   }

@@ -1,0 +1,57 @@
+td.charmap {
+  vertical-align: top;
+}
+
+table.charmap {
+  border-collapse: collapse;
+}
+
+table.charmap,
+table.charmap td {
+  border: 1px solid black;
+}
+
+table.charmap td {
+  padding: 4px;
+  font-weight: bold;
+  font-size: x-large;
+  color: black;
+  background-color: white;
+  text-align: center;
+  vertical-align: top;
+}
+
+table.charmap td div {
+  border-bottom: 1px solid gray;
+  color: dimgray;
+  font-size: x-small;
+  text-align: left;
+  font-weight: normal;
+  white-space: nowrap;
+}
+
+table.charmap td button {
+  height: 100%;
+  width: 100%;
+  padding: 8px;
+}
+
+table.charmap td div .entity {
+  font-weight: bold;
+}
+
+table.charmap td div .non-entity {
+  font-style: italic;
+}
+
+td.selected {
+  vertical-align: top;
+  border: 4px solid black;
+  padding: 8px;
+  margin-left: 8px;
+}
+
+input#valueTextBox {
+  font-size: 48pt;
+  width: 96pt;
+}
