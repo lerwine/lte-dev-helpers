@@ -1,5 +1,7 @@
+<ul ngbNav [activeId]="route.url| async" class="nav-tabs">
+  <li [ngbNavItem]="link.url" *ngFor="let link of links">
+    <a ngbNavLink [routerLink]="link.url">{{ link.title }}</a>
+  </li>
+</ul>
 <router-outlet></router-outlet>
 <app-messages></app-messages>
-<div class="footer">
-<button type="button" routerLink="/dashboard">Back to Dashboard</button>
-</div>
