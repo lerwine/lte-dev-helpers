@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 
-import { RegexTesterService, OperationType, ICreateRegExpFailedResult, ICreateRegExpSuccessResult, IRegExpTestResult, IRegExpExecResult, IRegExpReplaceResult, IRegExpSplitResult, isValidResult } from '../regex-tester.service';
+import { RegexTesterService, OperationType, isOperationFailure, IOperationFailure } from '../regex-tester.service';
 
 @Component({
   selector: 'app-regex-tester',
@@ -61,6 +61,24 @@ export class RegexTesterComponent {
   /** @type {string} */
   public set replaceValue(value: string) {
       this._replaceValue = value;
+  }
+  
+  // #endregion
+  // #region limit Property
+  
+  private _limit: string = "";
+  
+  /**
+   * Gets or sets the split limit value.
+   * @type {string}
+   * @memberof RegexTesterComponent
+   * @public
+   */
+  public get limit(): string { return this._limit; }
+  
+  /** @type {string} */
+  public set limit(value: string) {
+      this._limit = value;
   }
   
   // #endregion
@@ -188,91 +206,93 @@ export class RegexTesterComponent {
       this._concurrencyId = 0;
     else
       this._concurrencyId++;
+    var concurrencyId: number = this._concurrencyId;
+    var parseResult: Promise<RegExp> = this.regexTesterService.parseRegExp({
+      pattern: this._pattern,
+      globalFlag: this._globalFlag,
+      ignoreCaseFlag: this._ignoreCaseFlag,
+      multilineFlag: this._multilineFlag,
+      unicodeFlag: this._unicodeFlag,
+      stickyFlag: this._stickyFlag
+    });
     switch (this._operationType) {
       case OperationType.exec:
-        this.regexTesterService.execRegExp({
-          concurrencyId: this._concurrencyId,
-          pattern: this._pattern,
-          targetString: this._targetString,
-          globalFlag: this._globalFlag,
-          ignoreCaseFlag: this._ignoreCaseFlag,
-          multilineFlag: this._multilineFlag,
-          unicodeFlag: this._unicodeFlag,
-          stickyFlag: this._stickyFlag
-        }).subscribe(result => this.onExecCompleted(result));
+        parseResult.then(exp =>
+        {
+          if (concurrencyId != this._concurrencyId)
+            return Promise.resolve(null);
+          return this.regexTesterService.execRegExp(this._targetString, exp); 
+        }).then(result => this.onExecCompleted((concurrencyId != this._concurrencyId) ? null : result)).catch(reason =>
+            isOperationFailure(reason) ? ((reason.isRegexParse) ? this.onParseFailure(reason.error) : this.onExecFailed(reason.error)) : this.onExecFailed(reason));
         break;
       case OperationType.replace:
-        this.regexTesterService.replaceRegExp({
-          concurrencyId: this._concurrencyId,
-          pattern: this._pattern,
-          targetString: this._targetString,
-          replaceValue: this._replaceValue,
-          globalFlag: this._globalFlag,
-          ignoreCaseFlag: this._ignoreCaseFlag,
-          multilineFlag: this._multilineFlag,
-          unicodeFlag: this._unicodeFlag,
-          stickyFlag: this._stickyFlag
-        }).subscribe(result => this.onReplaceCompleted(result));
+        parseResult.then(exp =>
+        {
+          if (concurrencyId != this._concurrencyId)
+            return Promise.resolve(null);
+          return this.regexTesterService.replaceRegExp(this._targetString, exp, this._replaceValue); 
+        }).then(result => this.onReplaceCompleted((concurrencyId != this._concurrencyId) ? null : result));
         break;
       case OperationType.split:
-        var s = this._replaceValue.trim();
-        this.regexTesterService.splitRegExp({
-          concurrencyId: this._concurrencyId,
-          pattern: this._pattern,
-          targetString: this._targetString,
-          limit: this._replaceValue,
-          globalFlag: this._globalFlag,
-          ignoreCaseFlag: this._ignoreCaseFlag,
-          multilineFlag: this._multilineFlag,
-          unicodeFlag: this._unicodeFlag,
-          stickyFlag: this._stickyFlag
-        }).subscribe(result => this.onSplitCompleted(result));
+        parseResult.then(exp =>
+        {
+          if (concurrencyId != this._concurrencyId)
+            return Promise.resolve(null);
+          return this.regexTesterService.splitRegExp(this._targetString, exp, this._limit); 
+        }).then(result => this.onSplitCompleted((concurrencyId != this._concurrencyId) ? null : result));
         break;
       default:
-        this.regexTesterService.testRegExp({
-          concurrencyId: this._concurrencyId,
-          pattern: this._pattern,
-          targetString: this._targetString,
-          globalFlag: this._globalFlag,
-          ignoreCaseFlag: this._ignoreCaseFlag,
-          multilineFlag: this._multilineFlag,
-          unicodeFlag: this._unicodeFlag,
-          stickyFlag: this._stickyFlag
-        }).subscribe(result => this.onTestCompleted(result));
+        parseResult.then(exp =>
+        {
+          if (concurrencyId != this._concurrencyId)
+            return Promise.resolve(null);
+          return this.regexTesterService.testRegExp(this._targetString, exp); 
+        }).then(result => this.onTestCompleted((concurrencyId != this._concurrencyId) ? null : result));
         break;
     }
   }
 
-  isValidResult<T extends ICreateRegExpSuccessResult>(result: T | ICreateRegExpFailedResult): result is T {
-    if (result.concurrencyId != this._concurrencyId)
-      return false;
-    if (isValidResult<T>(result))
-      return true;
-    // TODO: Report error
-    return false;
+  onParseFailure(reason: any): any {
+    throw new Error('Method not implemented.');
   }
 
-  onTestCompleted(result: IRegExpTestResult | ICreateRegExpFailedResult): void {
-    if (!this.isValidResult<IRegExpTestResult>(result))
+  onTestCompleted(result: boolean | null): void {
+    if (result === null)
       return;
     throw new Error('Method not implemented.');
   }
 
-  onExecCompleted(result: IRegExpExecResult | ICreateRegExpFailedResult): void {
-    if (!this.isValidResult<IRegExpExecResult>(result))
+  onTestFailed(reason: any) {
+    throw new Error('Method not implemented.');
+  }
+  
+  onExecCompleted(result: RegExpExecArray | null): void {
+    if (result === null)
       return;
     throw new Error('Method not implemented.');
   }
 
-  onReplaceCompleted(result: IRegExpReplaceResult | ICreateRegExpFailedResult): void {
-    if (!this.isValidResult<IRegExpReplaceResult>(result))
+  onExecFailed(reason: any) {
+    throw new Error('Method not implemented.');
+  }
+
+  onReplaceCompleted(result: string | null): void {
+    if (result === null)
       return;
     throw new Error('Method not implemented.');
   }
 
-  onSplitCompleted(result: IRegExpSplitResult | ICreateRegExpFailedResult): void {
-    if (!this.isValidResult<IRegExpSplitResult>(result))
+  onReplaceFailed(reason: any) {
+    throw new Error('Method not implemented.');
+  }
+
+  onSplitCompleted(result: string[] | null): void {
+    if (result === null)
       return;
+    throw new Error('Method not implemented.');
+  }
+
+  onSplitFailed(reason: any) {
     throw new Error('Method not implemented.');
   }
 }
