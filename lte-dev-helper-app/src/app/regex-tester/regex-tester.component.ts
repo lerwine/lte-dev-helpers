@@ -1,6 +1,21 @@
 import { Component } from '@angular/core';
 
-import { RegexTesterService, OperationType, isOperationFailure, IOperationFailure } from '../regex-tester.service';
+import { RegexTesterService, OperationType } from '../regex-tester.service';
+
+interface INumberedGroup {
+  index: number;
+  value: string;
+}
+
+interface INamedGroup {
+  name: string;
+  value: string;
+}
+
+interface IOperationOption {
+  name: string;
+  value: OperationType;
+}
 
 @Component({
   selector: 'app-regex-tester',
@@ -8,6 +23,8 @@ import { RegexTesterService, OperationType, isOperationFailure, IOperationFailur
   styleUrls: ['./regex-tester.component.css']
 })
 export class RegexTesterComponent {
+  private _expression?: RegExp;
+
   // #region pattern Property
   
   private _pattern: string = "";
@@ -22,11 +39,16 @@ export class RegexTesterComponent {
   
   /** @type {string} */
   public set pattern(value: string) {
-      this._pattern = value;
+    if (this._pattern == value)
+      return;
+    this._pattern = value;
+    this.startParse();
   }
   
   // #endregion
   
+  parseErrorMessage: string = "";
+
   // #region targetString Property
   
   private _targetString: string = "";
@@ -41,10 +63,32 @@ export class RegexTesterComponent {
   
   /** @type {string} */
   public set targetString(value: string) {
-      this._targetString = value;
+    if (this._targetString == value)
+      return;
+    this._targetString = value;
+    this.testResult = "";
+    this.replaceResult = undefined;
+    this.matchIndex = -1;
+    this.numberedGroups = [];
+    this.namedGroups = [];
+    this.matchEvaluated = false;
+    this.splitResult = [];
+    this.startEvaluation();
   }
   
   // #endregion
+
+  testResult: string = "";
+
+  matchEvaluated: boolean = false;
+
+  matchIndex: number = -1;
+  
+  numberedGroups: INumberedGroup[] = [];
+  
+  namedGroups: INamedGroup[] = [];
+
+  operationErrorMessage: string = "";
 
   // #region replaceValue Property
   
@@ -60,13 +104,22 @@ export class RegexTesterComponent {
   
   /** @type {string} */
   public set replaceValue(value: string) {
-      this._replaceValue = value;
+    if (this._replaceValue == value)
+      return;
+    this.replaceResult = undefined;
+    this._replaceValue = value;
+    this.startEvaluation();
   }
   
   // #endregion
+
+  replaceResult?: string;
+
+  private _limitValue?: number;
+
   // #region limit Property
   
-  private _limit: string = "";
+  private _limitText: string = "";
   
   /**
    * Gets or sets the split limit value.
@@ -74,14 +127,42 @@ export class RegexTesterComponent {
    * @memberof RegexTesterComponent
    * @public
    */
-  public get limit(): string { return this._limit; }
+  public get limit(): string { return this._limitText; }
   
   /** @type {string} */
   public set limit(value: string) {
-      this._limit = value;
+    if (this._limitText == value)
+      return;
+    this._limitText = value;
+    if ((value = value.trim()).length == 0)
+    {
+      if (typeof this._limitValue === 'undefined')
+        return;
+      this._limitValue = undefined;
+    }
+    else
+    {
+      var l: number = parseInt(value);
+      if (isNaN(l)) {
+        if (typeof this._limitValue !== 'number' || !isNaN(this._limitValue))
+          this.limitErrorMessage = "Invalid number";
+        return;
+      }
+      if (this._limitValue === l)
+        return;
+      this._limitValue = l;
+    }
+    this.limitErrorMessage = "";
+    this.splitResult = [];
+    this.startEvaluation();
   }
   
   // #endregion
+
+  splitResult: string[] = [];
+
+  limitErrorMessage: string = "";
+
   // #region operationType Property
   
   private _operationType: OperationType = OperationType.test;
@@ -96,7 +177,10 @@ export class RegexTesterComponent {
   
   /** @type {OperationType} */
   public set operationType(value: OperationType) {
-      this._operationType = value;
+    if (this._operationType == value)
+      return;
+    this._operationType = value;
+    this.startEvaluation();
   }
   
   // #endregion
@@ -115,7 +199,10 @@ export class RegexTesterComponent {
   
   /** @type {boolean} */
   public set globalFlag(value: boolean) {
-      this._globalFlag = value;
+    if (this._globalFlag == value)
+      return;
+    this._globalFlag = value;
+    this.startParse();
   }
   
   // #endregion
@@ -134,7 +221,10 @@ export class RegexTesterComponent {
   
   /** @type {boolean} */
   public set ignoreCaseFlag(value: boolean) {
-      this._ignoreCaseFlag = value;
+    if (this._ignoreCaseFlag == value)
+      return;
+    this._ignoreCaseFlag = value;
+    this.startParse();
   }
   
   // #endregion
@@ -153,7 +243,10 @@ export class RegexTesterComponent {
   
   /** @type {boolean} */
   public set multilineFlag(value: boolean) {
-      this._multilineFlag = value;
+    if (this._multilineFlag == value)
+      return;
+    this._multilineFlag = value;
+    this.startParse();
   }
   
   // #endregion
@@ -172,7 +265,10 @@ export class RegexTesterComponent {
   
   /** @type {boolean} */
   public set unicodeFlag(value: boolean) {
-      this._unicodeFlag = value;
+    if (this._unicodeFlag == value)
+      return;
+    this._unicodeFlag = value;
+    this.startParse();
   }
   
   // #endregion
@@ -191,21 +287,32 @@ export class RegexTesterComponent {
   
   /** @type {boolean} */
   public set stickyFlag(value: boolean) {
-      this._stickyFlag = value;
+    if (this._stickyFlag == value)
+      return;
+    this._stickyFlag = value;
+    this.startParse();
   }
   
   // #endregion
 
   constructor(private regexTesterService: RegexTesterService) { }
 
-  ngOnInit(): void { this.startEvaluation(); }
+  ngOnInit(): void { this.startParse(); }
 
-  private _concurrencyId: number = 0;
-  startEvaluation() {
+  private _concurrencyId: number = -1;
+
+  startParse(): void {
     if (this._concurrencyId > 1073741822)
       this._concurrencyId = 0;
     else
       this._concurrencyId++;
+    this.parseErrorMessage = this.operationErrorMessage = this.testResult = "";
+    this.replaceResult = undefined;
+    this.matchIndex = -1;
+    this.numberedGroups = [];
+    this.namedGroups = [];
+    this.matchEvaluated = false;
+    this.splitResult = [];
     var concurrencyId: number = this._concurrencyId;
     var parseResult: Promise<RegExp> = this.regexTesterService.parseRegExp({
       pattern: this._pattern,
@@ -221,78 +328,113 @@ export class RegexTesterComponent {
         {
           if (concurrencyId != this._concurrencyId)
             return Promise.resolve(null);
+          this._expression = exp;
           return this.regexTesterService.execRegExp(this._targetString, exp); 
-        }).then(result => this.onExecCompleted((concurrencyId != this._concurrencyId) ? null : result)).catch(reason =>
-            isOperationFailure(reason) ? ((reason.isRegexParse) ? this.onParseFailure(reason.error) : this.onExecFailed(reason.error)) : this.onExecFailed(reason));
+        }).then(result => this.onExecCompleted((concurrencyId != this._concurrencyId) ? true : (result === null) ? false : result)).catch(this.onOperationFailed);
         break;
       case OperationType.replace:
         parseResult.then(exp =>
         {
           if (concurrencyId != this._concurrencyId)
             return Promise.resolve(null);
+          this._expression = exp;
           return this.regexTesterService.replaceRegExp(this._targetString, exp, this._replaceValue); 
-        }).then(result => this.onReplaceCompleted((concurrencyId != this._concurrencyId) ? null : result));
+        }).then(result => this.onReplaceCompleted((concurrencyId != this._concurrencyId) ? null : result)).catch(this.onOperationFailed);
         break;
       case OperationType.split:
         parseResult.then(exp =>
         {
           if (concurrencyId != this._concurrencyId)
             return Promise.resolve(null);
-          return this.regexTesterService.splitRegExp(this._targetString, exp, this._limit); 
-        }).then(result => this.onSplitCompleted((concurrencyId != this._concurrencyId) ? null : result));
+          this._expression = exp;
+          if (typeof this._limitValue === 'number' &&  isNaN(this._limitValue))
+            return Promise.resolve(null);
+          return this.regexTesterService.splitRegExp(this._targetString, exp, this._limitValue); 
+        }).then(result => this.onSplitCompleted((concurrencyId != this._concurrencyId) ? null : result)).catch(this.onOperationFailed);
         break;
       default:
         parseResult.then(exp =>
         {
           if (concurrencyId != this._concurrencyId)
             return Promise.resolve(null);
+          this._expression = exp;
           return this.regexTesterService.testRegExp(this._targetString, exp); 
-        }).then(result => this.onTestCompleted((concurrencyId != this._concurrencyId) ? null : result));
+        }).then(result => this.onTestCompleted((concurrencyId != this._concurrencyId) ? null : result)).catch(this.onOperationFailed);
         break;
     }
   }
 
-  onParseFailure(reason: any): any {
-    throw new Error('Method not implemented.');
+  startEvaluation(): void {
+    if (typeof this._expression === 'undefined' || typeof this._expression === 'undefined' || typeof this._expression === 'undefined')
+      return; 
+    if (this._concurrencyId > 1073741822)
+      this._concurrencyId = 0;
+    else
+      this._concurrencyId++;
+    var concurrencyId: number = this._concurrencyId;
+    this.operationErrorMessage = "";
+    switch (this._operationType) {
+      case OperationType.exec:
+        if (!this.matchEvaluated)
+          this.regexTesterService.execRegExp(this._targetString, this._expression).then(result => this.onExecCompleted((concurrencyId != this._concurrencyId) ? true : (result === null) ? false : result)).catch(this.onOperationFailed);
+        break;
+      case OperationType.replace:
+        if (typeof this.replaceResult !== 'undefined')
+          this.regexTesterService.replaceRegExp(this._targetString, this._expression, this._replaceValue).then(result => this.onReplaceCompleted((concurrencyId != this._concurrencyId) ? null : result)).catch(this.onOperationFailed);
+        break;
+      case OperationType.split:
+        if (this.splitResult.length == 0 && (typeof this._limitValue === 'undefined' || !isNaN(this._limitValue)))
+          this.regexTesterService.splitRegExp(this._targetString, this._expression, this._limitValue).then(result => this.onSplitCompleted((concurrencyId != this._concurrencyId) ? null : result)).catch(this.onOperationFailed);
+        break;
+      default:
+        if (this.testResult.length == 0)
+          this.regexTesterService.testRegExp(this._targetString, this._expression).then(result => this.onTestCompleted((concurrencyId != this._concurrencyId) ? null : result)).catch(this.onOperationFailed);
+        break;
+    }
   }
 
-  onTestCompleted(result: boolean | null): void {
-    if (result === null)
+  onOperationFailed(reason: any) {
+    if (typeof reason === 'string')
+    {
+      if ((this.operationErrorMessage = reason.trim()).length > 0)
+        return;
+    } else if (typeof reason !== 'undefined' && reason !== null && (this.operationErrorMessage = reason.toString().trim()).length > 0)
       return;
-    throw new Error('Method not implemented.');
-  }
-
-  onTestFailed(reason: any) {
-    throw new Error('Method not implemented.');
+    this.operationErrorMessage = "Unexpected error";
   }
   
-  onExecCompleted(result: RegExpExecArray | null): void {
-    if (result === null)
-      return;
-    throw new Error('Method not implemented.');
+  onTestCompleted(result: boolean | null): void {
+    if (result !== null)
+      this.testResult = result.toString();
   }
 
-  onExecFailed(reason: any) {
-    throw new Error('Method not implemented.');
+  onExecCompleted(result: RegExpExecArray | boolean): void {
+    if (typeof result === 'boolean')
+    {
+      if (result)
+        return;
+      this.matchIndex = -1;
+      this.numberedGroups = [];
+      this.namedGroups = [];
+      this.matchEvaluated = true;
+      return;
+    }
+    this.matchEvaluated = true;
+    this.matchIndex = result.index;
+    this.numberedGroups = result.map((v, i) => <INumberedGroup>{ index: i, value: v });
+    this.namedGroups = [];
+    if (typeof result.groups !== 'undefined' && result.groups !== null)
+      for (var n in result.groups)
+        this.namedGroups.push({ name: n, value: result.groups[n] });
   }
 
   onReplaceCompleted(result: string | null): void {
-    if (result === null)
-      return;
-    throw new Error('Method not implemented.');
-  }
-
-  onReplaceFailed(reason: any) {
-    throw new Error('Method not implemented.');
+    if (result !== null)
+      this.replaceResult = result;
   }
 
   onSplitCompleted(result: string[] | null): void {
-    if (result === null)
-      return;
-    throw new Error('Method not implemented.');
-  }
-
-  onSplitFailed(reason: any) {
-    throw new Error('Method not implemented.');
+    if (result !== null)
+      this.splitResult = result;
   }
 }

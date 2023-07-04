@@ -85,17 +85,12 @@ export class RegexTesterService {
 
   }
 
-  async splitRegExp(targetString: string, pattern: RegExp, limit?: string): Promise<string[]> {
+  async splitRegExp(targetString: string, pattern: RegExp, limit?: number): Promise<string[]> {
     return await new Promise((resolve, reject) => {
       try {
-        if (typeof limit === 'string' && (limit = limit.trim()).length > 0)
-        {
-          var l: number = parseInt(limit);
-          if (isNaN(l))
-            reject({ isRegexParse: false, error: "Invalid number value." });
-          else
-            resolve(targetString.split(pattern, l));
-        } else
+        if (typeof limit === 'number')
+          resolve(targetString.split(pattern, limit));
+        else
           resolve(targetString.split(pattern));
       } catch (e) {
         reject(<IOperationFailure>{ isRegexParse: false, error: e });
