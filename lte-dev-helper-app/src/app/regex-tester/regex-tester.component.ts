@@ -23,61 +23,24 @@ interface IOperationOption {
   styleUrls: ['./regex-tester.component.css']
 })
 export class RegexTesterComponent {
-  private _expression?: RegExp;
+  canEvaluate: boolean = true;
 
-  // #region pattern Property
+  pattern: string = "";
   
-  private _pattern: string = "";
+  // #region hasParseErrorMessage Property
   
   /**
-   * Gets or sets the regular expression pattern.
-   * @type {string}
+   * Gets a value indicating whether the pattern text is invalid.
+   * @type {boolean}
    * @memberof RegexTesterComponent
    * @public
    */
-  public get pattern(): string { return this._pattern; }
-  
-  /** @type {string} */
-  public set pattern(value: string) {
-    if (this._pattern == value)
-      return;
-    this._pattern = value;
-    this.startParse();
-  }
-  
-  // #endregion
+  public get hasParseErrorMessage(): boolean { return this.limitErrorMessage.length > 0; }
   
   parseErrorMessage: string = "";
 
-  // #region targetString Property
+  targetString: string = "";
   
-  private _targetString: string = "";
-  
-  /**
-   * Gets or sets the text that will be applied to the regular expression.
-   * @type {string}
-   * @memberof RegexTesterComponent
-   * @public
-   */
-  public get targetString(): string { return this._targetString; }
-  
-  /** @type {string} */
-  public set targetString(value: string) {
-    if (this._targetString == value)
-      return;
-    this._targetString = value;
-    this.testResult = "";
-    this.replaceResult = undefined;
-    this.matchIndex = -1;
-    this.numberedGroups = [];
-    this.namedGroups = [];
-    this.matchEvaluated = false;
-    this.splitResult = [];
-    this.startEvaluation();
-  }
-  
-  // #endregion
-
   testResult: string = "";
 
   matchEvaluated: boolean = false;
@@ -88,38 +51,31 @@ export class RegexTesterComponent {
   
   namedGroups: INamedGroup[] = [];
 
-  operationErrorMessage: string = "";
-
-  // #region replaceValue Property
+  replaceValue: string = "";
   
-  private _replaceValue: string = "";
-  
-  /**
-   * Gets or sets the replacement value.
-   * @type {string}
-   * @memberof RegexTesterComponent
-   * @public
-   */
-  public get replaceValue(): string { return this._replaceValue; }
-  
-  /** @type {string} */
-  public set replaceValue(value: string) {
-    if (this._replaceValue == value)
-      return;
-    this.replaceResult = undefined;
-    this._replaceValue = value;
-    this.startEvaluation();
-  }
-  
-  // #endregion
-
   replaceResult?: string;
+
+  canStartSplit: boolean = true;
 
   private _limitValue?: number;
 
+  // #region hasLimitErrorMessage Property
+  
+  /**
+   * Gets a value indicating whether the limit text is invalid.
+   * @type {boolean}
+   * @memberof RegexTesterComponent
+   * @public
+   */
+  public get hasLimitErrorMessage(): boolean { return this.limitErrorMessage.length > 0; }
+  
+  // #endregion
+
+  limitErrorMessage: string = "";
+
   // #region limit Property
   
-  private _limitText: string = "";
+  private _limit: string = "";
   
   /**
    * Gets or sets the split limit value.
@@ -127,292 +83,114 @@ export class RegexTesterComponent {
    * @memberof RegexTesterComponent
    * @public
    */
-  public get limit(): string { return this._limitText; }
+  public get limit(): string { return this._limit; }
   
   /** @type {string} */
   public set limit(value: string) {
-    if (this._limitText == value)
+    if (this._limit == value)
       return;
-    this._limitText = value;
+    this._limit = value;
     if ((value = value.trim()).length == 0)
     {
-      if (typeof this._limitValue === 'undefined')
-        return;
+      this.canStartSplit = true;
       this._limitValue = undefined;
     }
     else
     {
       var l: number = parseInt(value);
-      if (isNaN(l)) {
-        if (typeof this._limitValue !== 'number' || !isNaN(this._limitValue))
-          this.limitErrorMessage = "Invalid number";
-        return;
-      }
-      if (this._limitValue === l)
-        return;
-      this._limitValue = l;
+      this.canStartSplit = !isNaN(l);
+      if (this.canStartSplit) {
+        this._limitValue = l;
+        this.limitErrorMessage = "";
+      } else
+        this.limitErrorMessage = "Invalid number";
     }
-    this.limitErrorMessage = "";
-    this.splitResult = [];
-    this.startEvaluation();
   }
   
   // #endregion
 
   splitResult: string[] = [];
 
-  limitErrorMessage: string = "";
-
-  // #region operationType Property
+  globalFlag: boolean = false;
   
-  private _operationType: OperationType = OperationType.test;
+  ignoreCaseFlag: boolean = false;
   
-  /**
-   * Gets or sets the regular expression evaluation type.
-   * @type {OperationType}
-   * @memberof RegexTesterComponent
-   * @public
-   */
-  public get operationType(): OperationType { return this._operationType; }
+  multilineFlag: boolean = false;
   
-  /** @type {OperationType} */
-  public set operationType(value: OperationType) {
-    if (this._operationType == value)
-      return;
-    this._operationType = value;
-    this.startEvaluation();
-  }
+  unicodeFlag: boolean = false;
   
-  // #endregion
-
-  // #region globalFlag Property
+  stickyFlag: boolean = false;
   
-  private _globalFlag: boolean = false;
-  
-  /**
-   * Gets or sets a value indicating whether the global flag is set.
-   * @type {boolean}
-   * @memberof RegexTesterComponent
-   * @public
-   */
-  public get globalFlag(): boolean { return this._globalFlag; }
-  
-  /** @type {boolean} */
-  public set globalFlag(value: boolean) {
-    if (this._globalFlag == value)
-      return;
-    this._globalFlag = value;
-    this.startParse();
-  }
-  
-  // #endregion
-  
-  // #region ignoreCaseFlag Property
-  
-  private _ignoreCaseFlag: boolean = false;
-  
-  /**
-   * Gets or sets a value indicating whether the global flag is set.
-   * @type {boolean}
-   * @memberof RegexTesterComponent
-   * @public
-   */
-  public get ignoreCaseFlag(): boolean { return this._ignoreCaseFlag; }
-  
-  /** @type {boolean} */
-  public set ignoreCaseFlag(value: boolean) {
-    if (this._ignoreCaseFlag == value)
-      return;
-    this._ignoreCaseFlag = value;
-    this.startParse();
-  }
-  
-  // #endregion
-  
-  // #region multilineFlag Property
-  
-  private _multilineFlag: boolean = false;
-  
-  /**
-   * Gets or sets a value indicating whether the global flag is set.
-   * @type {boolean}
-   * @memberof RegexTesterComponent
-   * @public
-   */
-  public get multilineFlag(): boolean { return this._multilineFlag; }
-  
-  /** @type {boolean} */
-  public set multilineFlag(value: boolean) {
-    if (this._multilineFlag == value)
-      return;
-    this._multilineFlag = value;
-    this.startParse();
-  }
-  
-  // #endregion
-  
-  // #region unicodeFlag Property
-  
-  private _unicodeFlag: boolean = false;
-  
-  /**
-   * Gets or sets a value indicating whether the global flag is set.
-   * @type {boolean}
-   * @memberof RegexTesterComponent
-   * @public
-   */
-  public get unicodeFlag(): boolean { return this._unicodeFlag; }
-  
-  /** @type {boolean} */
-  public set unicodeFlag(value: boolean) {
-    if (this._unicodeFlag == value)
-      return;
-    this._unicodeFlag = value;
-    this.startParse();
-  }
-  
-  // #endregion
-  
-  // #region stickyFlag Property
-  
-  private _stickyFlag: boolean = false;
-  
-  /**
-   * Gets or sets a value indicating whether the global flag is set.
-   * @type {boolean}
-   * @memberof RegexTesterComponent
-   * @public
-   */
-  public get stickyFlag(): boolean { return this._stickyFlag; }
-  
-  /** @type {boolean} */
-  public set stickyFlag(value: boolean) {
-    if (this._stickyFlag == value)
-      return;
-    this._stickyFlag = value;
-    this.startParse();
-  }
-  
-  // #endregion
-
   constructor(private regexTesterService: RegexTesterService) { }
 
   ngOnInit(): void { this.startParse(); }
 
-  private _concurrencyId: number = -1;
+  startTest(): void {
+    this.parseErrorMessage = "";
+    this.canEvaluate = false;
+    this.testResult = "";
+    this.startParse().then(exp => this.regexTesterService.testRegExp(this.targetString, exp)).then(this.onTestCompleted).catch(this.onOperationFailed);
+  }
 
-  startParse(): void {
-    if (this._concurrencyId > 1073741822)
-      this._concurrencyId = 0;
-    else
-      this._concurrencyId++;
-    this.parseErrorMessage = this.operationErrorMessage = this.testResult = "";
-    this.replaceResult = undefined;
+  startExec(): void {
+    this.parseErrorMessage = "";
+    this.canEvaluate = false;
     this.matchIndex = -1;
     this.numberedGroups = [];
     this.namedGroups = [];
     this.matchEvaluated = false;
+    this.startParse().then(exp => this.regexTesterService.execRegExp(this.targetString, exp)).then(this.onExecCompleted).catch(this.onOperationFailed);
+  }
+
+  startReplace(): void {
+    this.replaceResult = undefined;
+    this.startParse().then(exp => this.regexTesterService.replaceRegExp(this.targetString, exp, this.replaceValue)).then(this.onReplaceCompleted).catch(this.onOperationFailed);
+  }
+
+  startSplit(): void {
+    if (!this.canStartSplit)
+      return;
+    this.parseErrorMessage = "";
+    this.canEvaluate = false;
     this.splitResult = [];
-    var concurrencyId: number = this._concurrencyId;
-    var parseResult: Promise<RegExp> = this.regexTesterService.parseRegExp({
-      pattern: this._pattern,
-      globalFlag: this._globalFlag,
-      ignoreCaseFlag: this._ignoreCaseFlag,
-      multilineFlag: this._multilineFlag,
-      unicodeFlag: this._unicodeFlag,
-      stickyFlag: this._stickyFlag
+    this.canStartSplit = false;
+    this.startParse().then(exp => this.regexTesterService.splitRegExp(this.targetString, exp, this._limitValue)).then(this.onSplitCompleted).catch(reason => {
+      this.canStartSplit = true;
+      this.onOperationFailed(reason);
     });
-    switch (this._operationType) {
-      case OperationType.exec:
-        parseResult.then(exp =>
-        {
-          if (concurrencyId != this._concurrencyId)
-            return Promise.resolve(null);
-          this._expression = exp;
-          return this.regexTesterService.execRegExp(this._targetString, exp); 
-        }).then(result => this.onExecCompleted((concurrencyId != this._concurrencyId) ? true : (result === null) ? false : result)).catch(this.onOperationFailed);
-        break;
-      case OperationType.replace:
-        parseResult.then(exp =>
-        {
-          if (concurrencyId != this._concurrencyId)
-            return Promise.resolve(null);
-          this._expression = exp;
-          return this.regexTesterService.replaceRegExp(this._targetString, exp, this._replaceValue); 
-        }).then(result => this.onReplaceCompleted((concurrencyId != this._concurrencyId) ? null : result)).catch(this.onOperationFailed);
-        break;
-      case OperationType.split:
-        parseResult.then(exp =>
-        {
-          if (concurrencyId != this._concurrencyId)
-            return Promise.resolve(null);
-          this._expression = exp;
-          if (typeof this._limitValue === 'number' &&  isNaN(this._limitValue))
-            return Promise.resolve(null);
-          return this.regexTesterService.splitRegExp(this._targetString, exp, this._limitValue); 
-        }).then(result => this.onSplitCompleted((concurrencyId != this._concurrencyId) ? null : result)).catch(this.onOperationFailed);
-        break;
-      default:
-        parseResult.then(exp =>
-        {
-          if (concurrencyId != this._concurrencyId)
-            return Promise.resolve(null);
-          this._expression = exp;
-          return this.regexTesterService.testRegExp(this._targetString, exp); 
-        }).then(result => this.onTestCompleted((concurrencyId != this._concurrencyId) ? null : result)).catch(this.onOperationFailed);
-        break;
-    }
   }
 
-  startEvaluation(): void {
-    if (typeof this._expression === 'undefined' || typeof this._expression === 'undefined' || typeof this._expression === 'undefined')
-      return; 
-    if (this._concurrencyId > 1073741822)
-      this._concurrencyId = 0;
-    else
-      this._concurrencyId++;
-    var concurrencyId: number = this._concurrencyId;
-    this.operationErrorMessage = "";
-    switch (this._operationType) {
-      case OperationType.exec:
-        if (!this.matchEvaluated)
-          this.regexTesterService.execRegExp(this._targetString, this._expression).then(result => this.onExecCompleted((concurrencyId != this._concurrencyId) ? true : (result === null) ? false : result)).catch(this.onOperationFailed);
-        break;
-      case OperationType.replace:
-        if (typeof this.replaceResult !== 'undefined')
-          this.regexTesterService.replaceRegExp(this._targetString, this._expression, this._replaceValue).then(result => this.onReplaceCompleted((concurrencyId != this._concurrencyId) ? null : result)).catch(this.onOperationFailed);
-        break;
-      case OperationType.split:
-        if (this.splitResult.length == 0 && (typeof this._limitValue === 'undefined' || !isNaN(this._limitValue)))
-          this.regexTesterService.splitRegExp(this._targetString, this._expression, this._limitValue).then(result => this.onSplitCompleted((concurrencyId != this._concurrencyId) ? null : result)).catch(this.onOperationFailed);
-        break;
-      default:
-        if (this.testResult.length == 0)
-          this.regexTesterService.testRegExp(this._targetString, this._expression).then(result => this.onTestCompleted((concurrencyId != this._concurrencyId) ? null : result)).catch(this.onOperationFailed);
-        break;
-    }
+  private startParse(): Promise<RegExp> {
+    return this.regexTesterService.parseRegExp({
+      pattern: this.pattern,
+      globalFlag: this.globalFlag,
+      ignoreCaseFlag: this.ignoreCaseFlag,
+      multilineFlag: this.multilineFlag,
+      unicodeFlag: this.unicodeFlag,
+      stickyFlag: this.stickyFlag
+    });
   }
 
-  onOperationFailed(reason: any) {
+  private onOperationFailed(reason: any) {
+    this.canEvaluate = true;
     if (typeof reason === 'string')
     {
-      if ((this.operationErrorMessage = reason.trim()).length > 0)
+      if ((this.parseErrorMessage = reason.trim()).length > 0)
         return;
-    } else if (typeof reason !== 'undefined' && reason !== null && (this.operationErrorMessage = reason.toString().trim()).length > 0)
+    } else if (typeof reason !== 'undefined' && reason !== null && (this.parseErrorMessage = reason.toString().trim()).length > 0)
       return;
-    this.operationErrorMessage = "Unexpected error";
+    this.parseErrorMessage = "Unexpected error";
   }
   
-  onTestCompleted(result: boolean | null): void {
-    if (result !== null)
-      this.testResult = result.toString();
+  private onTestCompleted(result: boolean): void {
+    this.canEvaluate = true;
+    this.testResult = result.toString();
   }
 
-  onExecCompleted(result: RegExpExecArray | boolean): void {
-    if (typeof result === 'boolean')
+  private onExecCompleted(result: RegExpExecArray | null): void {
+    this.canEvaluate = true;
+    if (result === null)
     {
-      if (result)
-        return;
       this.matchIndex = -1;
       this.numberedGroups = [];
       this.namedGroups = [];
@@ -428,13 +206,13 @@ export class RegexTesterComponent {
         this.namedGroups.push({ name: n, value: result.groups[n] });
   }
 
-  onReplaceCompleted(result: string | null): void {
-    if (result !== null)
-      this.replaceResult = result;
+  private onReplaceCompleted(result: string): void {
+    this.canEvaluate = true;
+    this.replaceResult = result;
   }
 
-  onSplitCompleted(result: string[] | null): void {
-    if (result !== null)
-      this.splitResult = result;
+  private onSplitCompleted(result: string[]): void {
+    this.canEvaluate = this.canStartSplit = true;
+    this.splitResult = result;
   }
 }
