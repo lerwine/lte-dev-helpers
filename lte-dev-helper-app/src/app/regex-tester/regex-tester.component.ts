@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 
-import { RegexTesterService, OperationType } from '../regex-tester.service';
+import { RegexTesterService, IParseRegexOptions } from '../regex-tester.service';
 
 interface INumberedGroup {
   index: number;
@@ -12,18 +12,13 @@ interface INamedGroup {
   value: string;
 }
 
-interface IOperationOption {
-  name: string;
-  value: OperationType;
-}
-
 @Component({
   selector: 'app-regex-tester',
   templateUrl: './regex-tester.component.html',
   styleUrls: ['./regex-tester.component.css']
 })
-export class RegexTesterComponent {
-  canEvaluate: boolean = true;
+export class RegexTesterComponent implements IParseRegexOptions {
+  disallowEvaluation: boolean = false;
 
   pattern: string = "";
   
@@ -55,7 +50,7 @@ export class RegexTesterComponent {
   
   replaceResult?: string;
 
-  canStartSplit: boolean = true;
+  disallowSplit: boolean = false;
 
   private _limitValue?: number;
 
@@ -92,18 +87,19 @@ export class RegexTesterComponent {
     this._limit = value;
     if ((value = value.trim()).length == 0)
     {
-      this.canStartSplit = true;
+      this.disallowSplit = false;
       this._limitValue = undefined;
     }
     else
     {
       var l: number = parseInt(value);
-      this.canStartSplit = !isNaN(l);
-      if (this.canStartSplit) {
+      this.disallowSplit = isNaN(l);
+      if (this.disallowSplit)
+        this.limitErrorMessage = "Invalid number";
+      else {
         this._limitValue = l;
         this.limitErrorMessage = "";
-      } else
-        this.limitErrorMessage = "Invalid number";
+      }
     }
   }
   
@@ -123,56 +119,67 @@ export class RegexTesterComponent {
   
   constructor(private regexTesterService: RegexTesterService) { }
 
-  ngOnInit(): void { this.startParse(); }
+  ngOnInit(): void { this.startTest(); }
 
   startTest(): void {
     this.parseErrorMessage = "";
-    this.canEvaluate = false;
+    var disallowSplit = this.disallowSplit;
+    this.disallowSplit = this.disallowEvaluation = true;
     this.testResult = "";
-    this.startParse().then(exp => this.regexTesterService.testRegExp(this.targetString, exp)).then(this.onTestCompleted).catch(this.onOperationFailed);
-  }
-
-  startExec(): void {
-    this.parseErrorMessage = "";
-    this.canEvaluate = false;
-    this.matchIndex = -1;
-    this.numberedGroups = [];
-    this.namedGroups = [];
-    this.matchEvaluated = false;
-    this.startParse().then(exp => this.regexTesterService.execRegExp(this.targetString, exp)).then(this.onExecCompleted).catch(this.onOperationFailed);
-  }
-
-  startReplace(): void {
-    this.replaceResult = undefined;
-    this.startParse().then(exp => this.regexTesterService.replaceRegExp(this.targetString, exp, this.replaceValue)).then(this.onReplaceCompleted).catch(this.onOperationFailed);
-  }
-
-  startSplit(): void {
-    if (!this.canStartSplit)
-      return;
-    this.parseErrorMessage = "";
-    this.canEvaluate = false;
-    this.splitResult = [];
-    this.canStartSplit = false;
-    this.startParse().then(exp => this.regexTesterService.splitRegExp(this.targetString, exp, this._limitValue)).then(this.onSplitCompleted).catch(reason => {
-      this.canStartSplit = true;
+    this.regexTesterService.parseRegExp(this).then(exp => this.regexTesterService.testRegExp(this.targetString, exp)).then(result => {
+      this.disallowSplit = disallowSplit;
+      this.onTestCompleted(result);
+    }).catch(reason => {
+      this.disallowSplit = disallowSplit;
       this.onOperationFailed(reason);
     });
   }
 
-  private startParse(): Promise<RegExp> {
-    return this.regexTesterService.parseRegExp({
-      pattern: this.pattern,
-      globalFlag: this.globalFlag,
-      ignoreCaseFlag: this.ignoreCaseFlag,
-      multilineFlag: this.multilineFlag,
-      unicodeFlag: this.unicodeFlag,
-      stickyFlag: this.stickyFlag
+  startExec(): void {
+    this.parseErrorMessage = "";
+    var disallowSplit = this.disallowSplit;
+    this.disallowSplit = this.disallowEvaluation = true;
+    this.matchIndex = -1;
+    this.numberedGroups = [];
+    this.namedGroups = [];
+    this.matchEvaluated = false;
+    this.regexTesterService.parseRegExp(this).then(exp => this.regexTesterService.execRegExp(this.targetString, exp)).then(result => {
+      this.disallowSplit = disallowSplit;
+      this.onExecCompleted(result);
+    }).catch(reason => {
+      this.disallowSplit = disallowSplit;
+      this.onOperationFailed(reason);
+    });
+  }
+
+  startReplace(): void {
+    var disallowSplit = this.disallowSplit;
+    this.disallowSplit = this.disallowEvaluation = true;
+    this.replaceResult = undefined;
+    this.regexTesterService.parseRegExp(this).then(exp => this.regexTesterService.replaceRegExp(this.targetString, exp, this.replaceValue)).then(result => {
+      this.disallowSplit = disallowSplit;
+      this.onReplaceCompleted(result);
+    }).catch(reason => {
+      this.disallowSplit = disallowSplit;
+      this.onOperationFailed(reason);
+    });
+  }
+
+  startSplit(): void {
+    if (this.disallowSplit)
+      return;
+    this.parseErrorMessage = "";
+    this.disallowEvaluation = true;
+    this.splitResult = [];
+    this.disallowSplit = true;
+    this.regexTesterService.parseRegExp(this).then(exp => this.regexTesterService.splitRegExp(this.targetString, exp, this._limitValue)).then(this.onSplitCompleted).catch(reason => {
+      this.disallowSplit = false;
+      this.onOperationFailed(reason);
     });
   }
 
   private onOperationFailed(reason: any) {
-    this.canEvaluate = true;
+    this.disallowEvaluation = false;
     if (typeof reason === 'string')
     {
       if ((this.parseErrorMessage = reason.trim()).length > 0)
@@ -183,12 +190,12 @@ export class RegexTesterComponent {
   }
   
   private onTestCompleted(result: boolean): void {
-    this.canEvaluate = true;
+    this.disallowEvaluation = false;
     this.testResult = result.toString();
   }
 
   private onExecCompleted(result: RegExpExecArray | null): void {
-    this.canEvaluate = true;
+    this.disallowEvaluation = false;
     if (result === null)
     {
       this.matchIndex = -1;
@@ -207,12 +214,12 @@ export class RegexTesterComponent {
   }
 
   private onReplaceCompleted(result: string): void {
-    this.canEvaluate = true;
+    this.disallowEvaluation = false;
     this.replaceResult = result;
   }
 
   private onSplitCompleted(result: string[]): void {
-    this.canEvaluate = this.canStartSplit = true;
+    this.disallowEvaluation = this.disallowSplit = false;
     this.splitResult = result;
   }
 }

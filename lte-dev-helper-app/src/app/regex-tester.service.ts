@@ -1,12 +1,5 @@
 import { Injectable } from '@angular/core';
 
-export enum OperationType {
-  test,
-  exec,
-  replace,
-  split
-}
-
 export interface IParseRegexOptions {
   pattern: string;
   globalFlag: boolean;
@@ -14,15 +7,6 @@ export interface IParseRegexOptions {
   multilineFlag: boolean;
   unicodeFlag: boolean;
   stickyFlag: boolean;
-}
-
-export interface IOperationFailure {
-  isRegexParse: boolean;
-  error: any;
-}
-
-export function isOperationFailure(obj: any): obj is IOperationFailure {
-  return typeof obj === 'object' && obj !== null && typeof <IOperationFailure>obj.isRegexParse === 'boolean' && typeof <IOperationFailure>obj.error !== 'undefined';
 }
 
 @Injectable({
@@ -46,53 +30,51 @@ export class RegexTesterService {
           else
             resolve(options.stickyFlag ? new RegExp(options.pattern, 'y') : new RegExp(options.pattern));
         } catch (e) {
-          reject(<IOperationFailure>{ isRegexParse: true, error: e });
+          reject(e);
         }
       });
   }
 
-  async testRegExp(targetString: string, pattern: RegExp): Promise<boolean> {
+  async testRegExp(targetString: string, exp: RegExp): Promise<boolean> {
     return await new Promise((resolve, reject) => {
       try {
-        resolve(pattern.test(targetString));
+        resolve(exp.test(targetString));
       } catch (e) {
-        reject(<IOperationFailure>{ isRegexParse: false, error: e });
+        reject(e);
       }
     });
   }
 
-  async execRegExp(targetString: string, pattern: RegExp): Promise<RegExpExecArray | null> {
+  async execRegExp(targetString: string, exp: RegExp): Promise<RegExpExecArray | null> {
     return await new Promise((resolve, reject) => {
       try {
-        resolve(pattern.exec(targetString));
+        resolve(exp.exec(targetString));
       } catch (e) {
-        reject(<IOperationFailure>{ isRegexParse: false, error: e });
+        reject(e);
       }
     });
 
   }
 
-  async replaceRegExp(targetString: string, pattern: RegExp, replacementString: string): Promise<string> {
+  async replaceRegExp(targetString: string, exp: RegExp, replacementString: string): Promise<string> {
     return await new Promise((resolve, reject) => {
       try {
+        resolve(targetString.replace(exp, replacementString));
       } catch (e) {
-        reject(<IOperationFailure>{ isRegexParse: false, error: e });
+        reject(e);
       }
     });
-    var exp: RegExp = await pattern;
-    return targetString.replace(exp, replacementString);
-
   }
 
-  async splitRegExp(targetString: string, pattern: RegExp, limit?: number): Promise<string[]> {
+  async splitRegExp(targetString: string, exp: RegExp, limit?: number): Promise<string[]> {
     return await new Promise((resolve, reject) => {
       try {
         if (typeof limit === 'number')
-          resolve(targetString.split(pattern, limit));
+          resolve(targetString.split(exp, limit));
         else
-          resolve(targetString.split(pattern));
+          resolve(targetString.split(exp));
       } catch (e) {
-        reject(<IOperationFailure>{ isRegexParse: false, error: e });
+        reject(e);
       }
     });
   }

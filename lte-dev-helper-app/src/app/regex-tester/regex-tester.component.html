@@ -1,19 +1,27 @@
 <ul ngbNav #nav="ngbNav" class="nav-tabs">
   <li ngbNavItem>
     <button ngbNavLink type="button">Test</button>
-    <ng-template ngbNavContent>First content</ng-template>
+    <ng-template ngbNavContent>
+      <button type="button" (click)="startTest()" [disabled]="disallowEvaluation">Evaluate</button>
+    </ng-template>
   </li>
   <li ngbNavItem>
     <button ngbNavLink type="button">Exec</button>
-    <ng-template ngbNavContent>Second content</ng-template>
+    <ng-template ngbNavContent>
+      <button type="button" (click)="startExec()" [disabled]="disallowEvaluation">Evaluate</button>
+    </ng-template>
   </li>
   <li ngbNavItem>
     <button ngbNavLink type="button">Replace</button>
-    <ng-template ngbNavContent>Third content</ng-template>
+    <ng-template ngbNavContent>
+      <button type="button" (click)="startReplace()" [disabled]="disallowEvaluation">Evaluate</button>
+    </ng-template>
   </li>
   <li ngbNavItem>
     <button ngbNavLink type="button">Split</button>
-    <ng-template ngbNavContent>Fourth content</ng-template>
+    <ng-template ngbNavContent>
+      <button type="button" (click)="startSplit()" [disabled]="disallowSplit">Evaluate</button>
+    </ng-template>
   </li>
 </ul>
 <div [ngbNavOutlet]="nav"></div>
