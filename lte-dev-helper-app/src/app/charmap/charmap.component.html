@@ -16,7 +16,7 @@
                     <span class="entity">{{c.name}}</span>
                     (u{{c.valueHex}})
                   </div>
-                  <ng-template #nonEntityBlock><div>u{{c.valueHex}}</div></ng-template>
+                  <ng-template #nonEntityBlock><div>{{c.shortName}}</div></ng-template>
                   <button type="button" [class.selected]="c === current" (click)="selectCharacter(c)">
                     <span *ngIf="c.hasValue; else noDisplayBlock" [style.font-family]="fontName">{{c.value}}</span>
                     <ng-template #noDisplayBlock>&nbsp;</ng-template>
@@ -31,6 +31,12 @@
         <td class="selected" *ngIf="current">
           <h3>Selected Character</h3>
           <dl>
+            <dt>Description:</dt>
+            <dd>{{current.desc}}</dd>
+            <dt *ngIf="current.hasAbbreviation">Abbreviation:</dt>
+            <dd *ngIf="current.hasAbbreviation">{{current.abbr}}</dd>
+            <dt *ngIf="current.hasAbbreviation">Value:</dt>
+            <dd *ngIf="current.hasAbbreviation">{{current.abbr}}</dd>
             <dt *ngIf="current.hasValue"><label for="valueTextBox">Value:</label></dt>
             <dd *ngIf="current.hasValue"><input name="valueTextBox" id="valueTextBox" type="text" [value]="current.value" [style.font-family]="fontName" /></dd>
             <dt><label for="hexTextBox">Hex Value:</label></dt>

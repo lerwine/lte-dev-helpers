@@ -60,6 +60,14 @@ class FontItem {
         }
     }
 }
+
+Write-Progress -Activity 'Getting font character counts' -Status 'Loading Unicode data' -PercentComplete 0;
+if ($null -eq $Script:Ucd) {
+    $Script:Ucd = [Xml]::new();
+    $Script:Ucd.Load(($PSScriptRoot | Join-Path -ChildPath 'ucd.all.grouped.xml'));
+    $Script:Nsmgr = [System.Xml.XmlNamespaceManager]::New($Script:Ucd.NameTable);
+    $Script:Nsmgr.AddNamespace('ucd', 'http://www.unicode.org/ns/2003/ucd/1.0');
+}
 [PSObject[]]$ExistingFonts = @();
 $ExistingFontNames = @();
 if ($FontIndexPath | Test-Path -PathType Leaf) {
@@ -80,8 +88,8 @@ if ($null -eq $Script:FontFamilies) {
         }
         [FontItem]::new($_);
     } | Where-Object { $_.CharacterCount -gt 0 -and $ExistingFontNames -notcontains $_.Name });
-    Write-Progress -Activity 'Getting font character counts' -Status 'Completed' -PercentComplete 100 -Completed;
 }
+Write-Progress -Activity 'Getting font character counts' -Status 'Completed' -PercentComplete 100 -Completed;
 $SelectedFont = $Script:FontFamilies | ForEach-Object {
     [PSCustomObject]@{
         Name = $_.Name;
@@ -237,6 +245,37 @@ if ($null -ne $SelectedFont) {
                 };
             }
         }
+    } | ForEach-Object {
+        $e = $Script:Ucd.DocumentElement.SelectSingleNode("ucd:repertoire/ucd:group/ucd:char[@cp=`"$($_.numericValue.ToString('X4'))`"]", $Script:Nsmgr);
+        if ($null -ne $e) {
+            $Description = $e.na;
+            if ([string]::IsNullOrWhiteSpace($Description)) { $Description = $e.na1; }
+            if ([string]::IsNullOrWhiteSpace($Description)) {
+                $a = $e.SelectSingleNode('ucd:name-alias[@type="control"]', $Script:Nsmgr);
+                if ($null -ne $a) { $Description = $a.alias }
+                if ([string]::IsNullOrWhiteSpace($Description)) {
+                    $a = $e.SelectSingleNode('ucd:name-alias[not(@type="abbreviation")]', $Script:Nsmgr);
+                    if ($null -ne $a) { $Description = $a.alias }
+                }
+            }
+            $Abbr = $null;
+            $a = $e.SelectSingleNode('ucd:name-alias[@type="abbreviation"]', $Script:Nsmgr);
+            if ($null -ne $a) { $Abbr = $a.alias }
+            if (-not [string]::IsNullOrWhiteSpace($Description)) {
+                $Description = @($Description.Trim() -split '\s+' | ForEach-Object {
+                    if ($_.Length -eq 0) {
+                        $_ | Write-Output;
+                    } else {
+                        ($_.SubString(0, 1) + $_.Substring(1).ToLower()) | Write-Output;
+                    }
+                }) -join ' ';
+                $_ | Add-Member -MemberType NoteProperty -Name 'desc' -Value $Description;
+            }
+            if (-not [string]::IsNullOrWhiteSpace($Abbr)) {
+                $_ | Add-Member -MemberType NoteProperty -Name 'abbr' -Value $Abbr;
+            }
+        }
+        $_ | Write-Output;
     }) | ConvertTo-Json -Depth 3).Replace("\u0026", "&").Replace("\u0027", "'").Replace("\u003c", "<").Replace("\u003e", ">") | Out-File -LiteralPath ($AssetsPath | Join-Path -ChildPath "char-map$id.json");
     Write-Progress -Activity 'Getting character information' -Status 'Finished' -PercentComplete 100 -Completed;
 }

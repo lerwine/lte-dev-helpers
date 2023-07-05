@@ -301,6 +301,10 @@ export interface ICharInfo {
    */
   name?: string;
 
+  desc: string;
+
+  abbr?: string;
+
   /**
    * Indicates whether the current character is a white-space character.
    * @type {boolean}
@@ -353,6 +357,9 @@ const CSS_CLASS_entity = "entity";
 
 const CSS_CLASS_nonEntity = "non-entity";
 
+function toValueHex(value: number): string {
+  return (value < 0x10) ? "000" + value.toString(16) : (value < 0x100) ? "00" + value.toString(16) : (value < 0x1000) ? "0" + value.toString(16) : value.toString(16);
+}
 /**
  * 
  * Represents font character information
@@ -374,9 +381,7 @@ export class CharInfo implements ICharInfo {
    * @memberof CharInfo
    * @public
    */
-  public get valueHex(): string {
-    return (this.numericValue < 0x10) ? "000" + this.numericValue.toString(16) : (this.numericValue < 0x100) ? "00" + this.numericValue.toString(16) : (this.numericValue < 0x1000) ? "0" + this.numericValue.toString(16) : this.numericValue.toString(16);
-  }
+  public get valueHex(): string { return toValueHex(this.numericValue); }
   
   /**
    * Indicates whether the character has a display value.
@@ -399,6 +404,10 @@ export class CharInfo implements ICharInfo {
    * @memberof CharInfo
    */
   name: string;
+
+  desc: string;
+
+  abbr?: string;
 
   /**
    * Indicates whether the current character is a white-space character.
@@ -436,7 +445,11 @@ export class CharInfo implements ICharInfo {
   
   public get hasEncodedValue(): boolean { return this.entitySet != EntitySet.none || this.numericValue > 127 || (!this.hasValue && this.numericValue != 32); }
   
+  public get hasAbbreviation(): boolean { return typeof this.abbr === 'string'; }
+  
   public get encodedValue(): string { return ((this.entitySet != EntitySet.none) ? '&' + this.name : '&#' + this.numericValue) + ';'; }
+  
+  public get shortName(): string { return (typeof this.abbr === 'string') ? this.abbr.toLowerCase() : (this.name.length > 0) ? this.name : "u" + toValueHex(this.numericValue); }
   
   /**
    * The identifier for the HTML entity set for the character.
@@ -473,6 +486,9 @@ export class CharInfo implements ICharInfo {
     this.numericValue = data.numericValue;
     this.value = (typeof data.value === 'string') ? data.value : "";
     this.name = (typeof data.name === 'string') ? data.name : "";
+    this.desc = (typeof data.desc === 'string' && data.desc.length > 0) ? data.desc : "Character U+" + toValueHex(this.numericValue);
+    if (typeof data.abbr === 'string' && data.abbr.length > 0)
+      this.abbr = data.abbr;
     this.isWhiteSpace = data.isWhiteSpace;
     try { this.category = data.category; } catch { this.category = UnicodeCategory.otherNotAssigned; }
     try { this.entitySet = data.entitySet; } catch { this.entitySet = EntitySet.none; }
