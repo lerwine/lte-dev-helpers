@@ -66,16 +66,16 @@
       <div *ngIf="matchSucceeded">
         <h3>Numbered Groups</h3>
         <ul *ngIf="hasNumberedGroups">
-          <li *ngFor="let item of numberedGroups">{{item.index}}. <input type="text" [(ngModel)]="item.value" [title]="'Numbered Group Index ' + item.index" readonly="true" />
-            <br/><small class="form-text text-secondary">{{item.js}}.length = {{item.value.length}}</small></li>
+          <li *ngFor="let item of numberedGroups">{{item.index}}. <input type="text" [(ngModel)]="item.value" [title]="'Numbered Group Index ' + item.index" readonly="true" *ngIf="item.hasValue" />
+            <br/><small class="form-text text-secondary" *ngIf="item.hasValue">{{item.js}}.length = {{item.value.length}}</small><small class="form-text text-secondary" *ngIf="!item.hasValue">{{item.js}}</small></li>
         </ul>
         <span *ngIf="!hasNumberedGroups" class="text-secondary">(none)</span>
       </div>
       <div *ngIf="matchSucceeded">
         <h3>Named Groups</h3>
         <ul *ngIf="hasNamedGroups">
-          <li *ngFor="let item of namedGroups"><strong>{{item.name}}</strong>: <input type="text" [(ngModel)]="item.value" [title]="'Named Group ' + item.name" readonly="true" />
-            <br/><small class="form-text text-secondary">{{item.js}}.length = {{item.value.length}}</small></li>
+          <li *ngFor="let item of namedGroups"><strong>{{item.name}}</strong>: <input type="text" [(ngModel)]="item.value" [title]="'Named Group ' + item.name" readonly="true" *ngIf="item.hasValue" />
+            <br/><small class="form-text text-secondary" *ngIf="item.hasValue">{{item.js}}.length = {{item.value.length}}</small><small class="form-text text-secondary" *ngIf="!item.hasValue">{{item.js}}</small></li>
         </ul>
         <span *ngIf="!hasNamedGroups" class="text-secondary">(none)</span>
       </div>

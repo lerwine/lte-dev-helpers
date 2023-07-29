@@ -6,8 +6,10 @@ import { ConcurrentAsyncExecService } from '../concurrent-async-exec.service';
 
 interface IValueAndJs {
   value: string;
+  hasValue: boolean;
   js: string;
 }
+
 interface INumberedGroup extends IValueAndJs {
   index: number;
 }
@@ -451,12 +453,12 @@ export class RegexTesterComponent {
           return;
         }
         this.matchIndex = result.index;
-        this.numberedGroups = result.map((v, i) => <INumberedGroup>{ index: i, value: v, js: JSON.stringify(v) });
+        this.numberedGroups = result.map((v, i) => (typeof v === 'string') ? <INumberedGroup>{ index: i, value: v, hasValue: true, js: JSON.stringify(v) } : <INumberedGroup>{ index: i, value: "", hasValue: false, js: JSON.stringify(v) });
         this.namedGroups = [];
         if (typeof result.groups !== 'undefined' && result.groups !== null)
           for (var n in result.groups) {
             var s = result.groups[n];
-            this.namedGroups.push({ name: n, value: s, js: JSON.stringify(s) });
+            this.namedGroups.push((typeof s === 'string') ? { name: n, value: s, hasValue: true, js: JSON.stringify(s) } : { name: n, value: "", hasValue: false, js: JSON.stringify(s) });
           }
       })
       .finally(() => this._concurrencyCount--);
@@ -481,7 +483,7 @@ export class RegexTesterComponent {
     this.resetMatchResults();
     this.concurrentAsyncExecService.then2<RegExp, string, number | undefined, string[]>(this._startSplitKey, this.getRegExpPromise(), this._targetString, this._limitValue,
       (exp, s, r) => this.regexTesterService.splitRegExp(s, exp, r), reason => this.evaluationErrorMessage = ((reason = this.asString(reason).trim()).length == 0) ? "An unexpected error has occurred." : reason)
-      .then(result => this.splitResult = result.map((v, i) => <INumberedGroup>{ value: v, index: i, js: JSON.stringify(v) }))
+      .then(result => this.splitResult = result.map((v, i) => <INumberedGroup>{ value: v, index: i, hasValue: true, js: JSON.stringify(v) }))
       .finally(() => this._concurrencyCount--);
   }
 }

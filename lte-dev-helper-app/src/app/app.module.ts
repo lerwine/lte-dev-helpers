@@ -11,6 +11,7 @@ import { DashboardComponent } from './dashboard/dashboard.component';
 import { MessagesComponent } from './messages/messages.component';
 import { NgbModule } from '@ng-bootstrap/ng-bootstrap';
 import { RegexTesterComponent } from './regex-tester/regex-tester.component';
+import { UriBuilderComponent } from './uri-builder/uri-builder.component';
 
 @NgModule({
   declarations: [
@@ -19,7 +20,8 @@ import { RegexTesterComponent } from './regex-tester/regex-tester.component';
     CharmapComponent,
     DashboardComponent,
     MessagesComponent,
-    RegexTesterComponent
+    RegexTesterComponent,
+    UriBuilderComponent
   ],
   imports: [
     BrowserModule,
