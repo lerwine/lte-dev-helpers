@@ -6,7 +6,7 @@
         <td class="charmap">
           <label>
             Show All
-            <input type="checkbox" name="showAllCheckBox" id="showAllCheckBox" (change)="showAllToggle($event)" [checked]="showAll" />
+            <input type="checkbox" name="showAllCheckBox" id="showAllCheckBox" (change)="showAllToggle($event)" [checked]="showAll" readonly="true" />
           </label>
           <table class="charmap">
             <tbody>
@@ -38,11 +38,11 @@
             <dt *ngIf="current.hasAbbreviation">Value:</dt>
             <dd *ngIf="current.hasAbbreviation">{{current.abbr}}</dd>
             <dt *ngIf="current.hasValue"><label for="valueTextBox">Value:</label></dt>
-            <dd *ngIf="current.hasValue"><input name="valueTextBox" id="valueTextBox" type="text" [value]="current.value" [style.font-family]="fontName" /></dd>
+            <dd *ngIf="current.hasValue"><input name="valueTextBox" id="valueTextBox" type="text" [value]="current.value" [style.font-family]="fontName" readonly="true" /></dd>
             <dt><label for="hexTextBox">Hex Value:</label></dt>
-            <dd><input name="hexTextBox" id="hexTextBox" type="text" [value]="current.valueHex" /></dd>
+            <dd><input name="hexTextBox" id="hexTextBox" type="text" [value]="current.valueHex" readonly="true" /></dd>
             <dt *ngIf="current.hasEncodedValue"><label for="nameTextBox">Encoded Value:</label></dt>
-            <dd *ngIf="current.hasEncodedValue"><input name="nameTextBox" id="nameTextBox" type="text" [value]="current.encodedValue" /></dd>
+            <dd *ngIf="current.hasEncodedValue"><input name="nameTextBox" id="nameTextBox" type="text" [value]="current.encodedValue" readonly="true" /></dd>
             <dt>Is WhiteSpace:</dt>
             <dd>{{current.isWhiteSpace}}</dd>
             <dt>Category:</dt>
