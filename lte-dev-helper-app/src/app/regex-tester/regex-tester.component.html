@@ -1,26 +1,112 @@
+<div class="form-row">
+  <div class="form-check form-check-inline">
+    <input class="form-check-input" type="checkbox" id="stripWhitespaceCheckbox" [(ngModel)]="stripLeadingWhitespace">
+    <label class="form-check-label" for="stripWhitespaceCheckbox">Strip newlines and leading white space</label>
+  </div>
+  <div class="form-check form-check-inline">
+    <input class="form-check-input" type="checkbox" id="parsePatternOnChangeCheckbox" [(ngModel)]="parsePatternOnChange">
+    <label class="form-check-label" for="parsePatternOnChangeCheckbox">Parse pattern on change</label>
+  </div>
+</div>
+<div class="form-row">
+  <div class="form-check form-check-inline">
+    <input class="form-check-input" type="checkbox" id="globalCheckbox" [(ngModel)]="globalFlag">
+    <label class="form-check-label" for="globalCheckbox">Global</label>
+  </div>
+  <div class="form-check form-check-inline">
+    <input class="form-check-input" type="checkbox" id="ignoreCaseCheckbox" [(ngModel)]="ignoreCaseFlag">
+    <label class="form-check-label" for="ignoreCaseCheckbox">Ignore Case</label>
+  </div>
+  <div class="form-check form-check-inline">
+    <input class="form-check-input" type="checkbox" id="multilineCheckbox" [(ngModel)]="multilineFlag">
+    <label class="form-check-label" for="multilineCheckbox">Multi-line</label>
+  </div>
+  <div class="form-check form-check-inline">
+    <input class="form-check-input" type="checkbox" id="unicodeCheckbox" [(ngModel)]="unicodeFlag">
+    <label class="form-check-label" for="unicodeCheckbox">Unicode</label>
+  </div>
+  <div class="form-check form-check-inline">
+    <input class="form-check-input" type="checkbox" id="stickyCheckbox" [(ngModel)]="stickyFlag">
+    <label class="form-check-label" for="stickyCheckbox">Sticky</label>
+  </div>
+</div>
+<div class="form-group">
+  <label for="patternTextBox" [hidden]="stripLeadingWhitespace">Pattern</label>
+  <input class="form-control" id="patternTextBox" [(ngModel)]="pattern" [hidden]="stripLeadingWhitespace" />
+  <label for="multilinePatternTextarea" [hidden]="!stripLeadingWhitespace">Pattern</label>
+  <textarea class="form-control" id="multilinePatternTextarea" rows="6" [(ngModel)]="multilinePattern" [hidden]="!stripLeadingWhitespace"></textarea>
+  <small class="form-text text-bg-danger" *ngIf="hasParseErrorMessage">{{parseErrorMessage}}</small>
+</div>
+
 <ul ngbNav #nav="ngbNav" class="nav-tabs">
   <li ngbNavItem>
     <button ngbNavLink type="button">Test</button>
     <ng-template ngbNavContent>
-      <button type="button" (click)="startTest()" [disabled]="disallowEvaluation">Evaluate</button>
+      <div class="form-group">
+        <label for="testTextarea">Input String</label>
+        <textarea class="form-control" id="testTextarea" rows="6" [(ngModel)]="targetString"></textarea>
+      </div>
+      <button type="button" (click)="startTest()" [disabled]="disallowEvaluation">Evaluate</button>&nbsp;
+      <small class="form-text text-bg-danger" *ngIf="hasEvaluationErrorMessage">{{evaluationErrorMessage}}</small>
+      <span class="form-text text-bg-success" *ngIf="testPassed">True</span>
+      <span class="form-text text-bg-warning" *ngIf="testFailed">False</span>
     </ng-template>
   </li>
   <li ngbNavItem>
     <button ngbNavLink type="button">Exec</button>
     <ng-template ngbNavContent>
-      <button type="button" (click)="startExec()" [disabled]="disallowEvaluation">Evaluate</button>
+      <div class="form-group">
+        <label for="execTextarea">Input String</label>
+        <textarea class="form-control" id="execTextarea" rows="6" [(ngModel)]="targetString"></textarea>
+      </div>
+      <button type="button" (click)="startExec()" [disabled]="disallowEvaluation">Evaluate</button>&nbsp;
+      <small class="form-text text-bg-danger" *ngIf="hasEvaluationErrorMessage">{{evaluationErrorMessage}}</small>
+      <small class="form-text text-bg-warning" *ngIf="matchFailed">Match failed.</small>
+      <small class="form-text text-bg-success" *ngIf="matchSucceeded">Match succeeded at index {{matchIndex}}.</small>
+      <div *ngIf="matchSucceeded">
+        <h3>Numbered Groups</h3>
+        <ul *ngIf="hasNumberedGroups">
+          <li *ngFor="let item of numberedGroups">{{item.index}}. <input type="text" [(ngModel)]="item.value" [title]="'Numbered Group Index ' + item.index" readonly="true" />
+            <br/><small class="form-text text-secondary">{{item.js}}.length = {{item.value.length}}</small></li>
+        </ul>
+        <span *ngIf="!hasNumberedGroups" class="text-secondary">(none)</span>
+      </div>
+      <div *ngIf="matchSucceeded">
+        <h3>Named Groups</h3>
+        <ul *ngIf="hasNamedGroups">
+          <li *ngFor="let item of namedGroups"><strong>{{item.name}}</strong>: <input type="text" [(ngModel)]="item.value" [title]="'Named Group ' + item.name" readonly="true" />
+            <br/><small class="form-text text-secondary">{{item.js}}.length = {{item.value.length}}</small></li>
+        </ul>
+        <span *ngIf="!hasNamedGroups" class="text-secondary">(none)</span>
+      </div>
     </ng-template>
   </li>
   <li ngbNavItem>
     <button ngbNavLink type="button">Replace</button>
     <ng-template ngbNavContent>
+      <div class="form-group">
+        <label for="inputTextarea">Input String</label>
+        <textarea class="form-control" id="inputTextarea" rows="6" [(ngModel)]="targetString"></textarea>
+      </div>
+      <div class="form-group">
+        <label for="replacementTextarea">Replacement</label>
+        <textarea class="form-control" id="replacementTextarea" rows="3" [(ngModel)]="replaceValue"></textarea>
+      </div>
       <button type="button" (click)="startReplace()" [disabled]="disallowEvaluation">Evaluate</button>
+      <small class="form-text text-bg-danger" *ngIf="hasEvaluationErrorMessage"> {{evaluationErrorMessage}}</small>
+      <textarea class="form-control" id="replacementResultTextarea" rows="3" [(ngModel)]="replaceResult" *ngIf="hasReplacementResult" readonly="true"></textarea>
+      <small class="text-secondary" *ngIf="hasReplacementResult">{{replaceResultJs}}.length = {{replaceResult.length}}</small>
     </ng-template>
   </li>
   <li ngbNavItem>
     <button ngbNavLink type="button">Split</button>
     <ng-template ngbNavContent>
       <button type="button" (click)="startSplit()" [disabled]="disallowSplit">Evaluate</button>
+      <small class="form-text text-bg-danger" *ngIf="hasEvaluationErrorMessage"> {{evaluationErrorMessage}}</small>
+      <ul *ngIf="hasSplitResult">
+        <li *ngFor="let item of splitResult">{{item.index}}. <input type="text" [(ngModel)]="item.value" [title]="'Split Item Index ' + item.index" readonly="true" />
+          <br/><small class="form-text text-secondary">{{item.js}}.length = {{item.value.length}}</small></li>
+      </ul>
     </ng-template>
   </li>
 </ul>
