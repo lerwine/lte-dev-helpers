@@ -5,6 +5,7 @@ import { DashboardComponent } from './dashboard/dashboard.component';
 import { CharmapComponent } from './charmap/charmap.component';
 import { RegexTesterComponent } from './regex-tester/regex-tester.component';
 import { UriBuilderComponent } from './uri-builder/uri-builder.component';
+import { IpSubnetComponent } from './ip-subnet/ip-subnet.component';
 
 export interface IAppRoute extends Route {
   title: string;
@@ -15,7 +16,8 @@ export const LINKS: IAppRoute[] = [
   { path: "dashboard", component: DashboardComponent, title: "Home" },
   { path: "fonts", component: FontsComponent, title: "Character Maps" },
   { path: "regex", component: RegexTesterComponent, title: "Regular Expression Tester" },
-  { path: "uri", component: UriBuilderComponent, title: "URI Parser/Builder" }
+  { path: "uri", component: UriBuilderComponent, title: "URI Parser/Builder" },
+  { path: "ip-subnet", component: IpSubnetComponent, title: "IP Subnet Calculator" }
 ];
 
 const routes: Routes = (<Route[]>LINKS).concat([
