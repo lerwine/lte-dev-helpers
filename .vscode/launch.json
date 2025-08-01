@@ -5,6 +5,17 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Launch Chrome with ng serve",
+            "type": "chrome",
+            "request": "launch",
+            "url": "http://localhost:4200",
+            "webRoot": "${workspaceRoot}/lte-dev-helper-app",
+            "sourceMapPathOverrides": {
+                "webRoot": "${workspaceRoot}/lte-dev-helper-app",
+                "webpack:/*": "${workspaceRoot}/lte-dev-helper-app/*"
+            }
+        },
+        {
             "type": "msedge",
             "request": "launch",
             "name": "Launch lte-dev-helper-app in Edge",
