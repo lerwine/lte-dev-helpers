@@ -12,6 +12,7 @@ import { MessagesComponent } from './messages/messages.component';
 import { NgbModule } from '@ng-bootstrap/ng-bootstrap';
 import { RegexTesterComponent } from './regex-tester/regex-tester.component';
 import { UriBuilderComponent } from './uri-builder/uri-builder.component';
+import { IpSubnetComponent } from './ip-subnet/ip-subnet.component';
 
 @NgModule({
   declarations: [
@@ -21,7 +22,8 @@ import { UriBuilderComponent } from './uri-builder/uri-builder.component';
     DashboardComponent,
     MessagesComponent,
     RegexTesterComponent,
-    UriBuilderComponent
+    UriBuilderComponent,
+    IpSubnetComponent
   ],
   imports: [
     BrowserModule,
