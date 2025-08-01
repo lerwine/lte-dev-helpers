@@ -1,0 +1,50 @@
+<div class="form-group">
+  <label for="targetIpAddressTextBox">Target IP Address</label>
+  <input type="text" class="form-control" id="targetIpAddressTextBox" [(ngModel)]="targetAddress" />
+</div>
+<div class="alert alert-warning" role="alert" *ngIf="errorMessage">{{errorMessage}}</div>
+<button type="button" class="btn btn-primary mb-2" (click)="calculate()">Calculate</button>
+<div class="form-group"*ngIf="previousAddress">
+  <label for="previousIpAddressButton">Previous IP Address:</label>&nbsp;{{previousAddress}}
+  <button type="button" class="btn btn-secondary mb-2" id="previousIpAddressButton" (click)="setAddress(previousAddress)">Go</button>
+</div>
+<table *ngIf="blocks.length" class="table table-bordered table-striped table-sm">
+  <thead>
+    <th scope="col">CIDR</th>
+    <th scope="col">Last IP</th>
+    <th scope="col">Subnet Mask</th>
+    <th scope="col">Address Count</th>
+    <th scope="col">Previous Block</th>
+    <th scope="col">Next Block</th>
+  </thead>
+  <tbody>
+    <tr *ngFor="let b of blocks">
+      <th scope="row">
+        {{b.firstIP}}/{{b.maskBits}}
+        <ng-template [ngIf]="b.firstIP != targetAddress"><button type="button" class="btn btn-secondary btn-sm" (click)="setAddress(b.firstIP)">Go</button></ng-template>
+      </th>
+      <td>
+        {{b.lastIP}}
+        <ng-template [ngIf]="b.lastIP != targetAddress"><button type="button" class="btn btn-secondary btn-sm" (click)="setAddress(b.lastIP)">Go</button></ng-template>
+      </td>
+      <td>
+        {{b.subnetMask}}
+      </td>
+      <td>
+        {{b.addressCount}}
+      </td>
+      <td>
+        <ng-template [ngIf]="b.previousBlock">
+          {{b.previousBlock}}
+          <button type="button" class="btn btn-secondary btn-sm" (click)="setAddress(b.previousBlock)">Go</button>
+        </ng-template>
+      </td>
+      <td>
+        <ng-template [ngIf]="b.nextBlock">
+          {{b.nextBlock}}
+          <button type="button" class="btn btn-secondary btn-sm" (click)="setAddress(b.nextBlock)">Go</button>
+        </ng-template>
+      </td>
+    </tr>
+  </tbody>
+</table>
